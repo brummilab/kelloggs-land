@@ -30,7 +30,7 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ⬜ Profiles for other game releases (e.g. START.EXE 148,480 bytes)
 - ✅ WebGL2 renderer (palette, PEL mask, tiles and sprites on the GPU; software fallback)
 - 🔨 Frame interpolation for smoother scrolling (camera and sprites, at the monitor's refresh rate; needs testing on real hardware)
-- ✅ HD mode: xBR-lv2 pixel-art scaler on the GPU for levels, menus and title (toggle "Grafik: HD / Pixel")
+- ✅ HD mode: sharp-bilinear pixels for the playfield, xBR-lv2 for status bar and info windows (toggle "Grafik: HD / Pixel")
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
 - ⬜ Optional HD pack: high-resolution tiles and sprites generated locally from the player's own `PCKELL.DAT`
 

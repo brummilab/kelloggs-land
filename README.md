@@ -77,7 +77,7 @@ Then open `http://localhost:8766/web/` and pick your copy of the game (ZIP, sing
 | Esc | back to the map without losing a life |
 | Enter | confirm menu (Start is preselected); Space continues on the title screen |
 
-Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Grafik: HD" smooths the pixel edges with the xBR scaler on the GPU (menus, title and levels); "Grafik: Pixel" shows the original pixels.
+Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Grafik: HD" shows even, sharp pixels at any window size and smooths the status bar and info windows with the xBR scaler; "Grafik: Pixel" shows plain nearest-neighbour pixels.
 
 ## Testing without a browser
 

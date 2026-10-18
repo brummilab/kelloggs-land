@@ -222,14 +222,39 @@ async function exportDone(gfx) {
     hdStatus(`Exportiert: ${gfx.tiles.length} Kacheln, ${gfx.sprites.length} Sprites (kelloggs-grafik.zip).`);
   } catch (e) { hdStatus(`Export fehlgeschlagen: ${e.message}`); }
 }
+// Zwei Quellen: das mitgelieferte HD-Paket aus dem Repo (web/hd/) und das eigene aus der Werkstatt.
+// Eigene Bilder gehen vor. Das mitgelieferte lässt sich abschalten.
+let builtinPack = new Map(), userPack = new Map(), builtinOn = true;
+try { builtinOn = localStorage.getItem('kelloggs-hd-builtin') !== '0'; } catch {}
+function applyPacks() {
+  if (!glr) return;
+  const pack = new Map(builtinOn ? builtinPack : []);
+  for (const [k, v] of userPack) pack.set(k, v);
+  glr.loadPack(pack);
+  const count = (p) => { const t = [...p.keys()].filter((k) => k[0] === 't').length; return `${t} Kacheln, ${p.size - t} Sprites`; };
+  const parts = [];
+  if (builtinPack.size) parts.push(`mitgeliefert ${builtinOn ? '' : '(aus) '}${count(builtinPack)}`);
+  if (userPack.size) parts.push(`eigenes ${count(userPack)}`);
+  hdStatus(parts.length ? `HD-Grafik: ${parts.join(' · ')}.` : 'Kein HD-Paket aktiv.');
+  $('hdclear').hidden = !userPack.size;
+  $('hdbuiltin').checked = builtinOn; $('hdbuiltinrow').hidden = !builtinPack.size;
+}
 async function usePack(entries, save) {
   if (!glr) { hdStatus('HD-Pakete brauchen WebGL2.'); return; }
-  const pack = await readPack(entries);
-  glr.loadPack(pack);
+  userPack = await readPack(entries);
   if (save) { try { await savePackFiles(entries); } catch {} }
-  const t = [...pack.keys()].filter((k) => k[0] === 't').length;
-  hdStatus(pack.size ? `HD-Paket aktiv: ${t} Kacheln, ${pack.size - t} Sprites.` : 'Keine passenden Dateien gefunden (t_xxxxxxxx.png / s_xxxxxxxx.png).');
-  $('hdclear').hidden = !pack.size;
+  if (!userPack.size) { hdStatus('Keine passenden Dateien gefunden (t_xxxxxxxx.png / s_xxxxxxxx.png).'); }
+  applyPacks();
+}
+// Mitgeliefertes Paket: web/hd/index.json (beim Veröffentlichen von tools/hd-index.py erzeugt)
+async function loadBuiltin() {
+  if (!glr) return;
+  try {
+    const r = await fetch(new URL('./hd/index.json', import.meta.url)); if (!r.ok) return;
+    const names = (await r.json()).files || [];
+    const entries = await Promise.all(names.map(async (n) => [n, new Uint8Array(await (await fetch(new URL('./hd/' + n, import.meta.url))).arrayBuffer())]));
+    builtinPack = await readPack(entries); applyPacks();
+  } catch {}
 }
 async function pickPack(fileList) {
   hdStatus('Lade HD-Paket …');
@@ -239,5 +264,7 @@ async function pickPack(fileList) {
 }
 $('hdpick').addEventListener('change', (e) => pickPack(e.target.files));
 $('hdpickdir').addEventListener('change', (e) => pickPack(e.target.files));
-$('hdclear').addEventListener('click', async () => { if (glr) glr.loadPack(new Map()); try { await clearPackFiles(); } catch {} hdStatus('HD-Paket entfernt.'); $('hdclear').hidden = true; });
+$('hdclear').addEventListener('click', async () => { userPack = new Map(); try { await clearPackFiles(); } catch {} applyPacks(); });
+$('hdbuiltin').addEventListener('change', (e) => { builtinOn = e.target.checked; try { localStorage.setItem('kelloggs-hd-builtin', builtinOn ? '1' : '0'); } catch {} applyPacks(); });
+loadBuiltin();
 loadPackFiles().then((e) => { if (e && e.length) usePack(e, false); }).catch(() => {});

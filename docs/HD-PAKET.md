@@ -2,7 +2,9 @@
 
 Stand: 18.10.2026. Mit der Grafik-Werkstatt lassen sich Kacheln und Figuren des Spiels von Hand verbessern. Das Ergebnis heißt **HD-Paket**: ein Ordner oder eine ZIP-Datei mit PNG-Bildern, die die Originalgrafik im Spiel ersetzen.
 
-Die Grafiken stammen immer aus der eigenen Spielkopie. Ein HD-Paket enthält bearbeitete Spielgrafik und gehört deshalb **nicht** ins Repository und nicht ins Netz, solange die Rechte nicht geklärt sind.
+Die Vorlagen stammen aus der eigenen Spielkopie. Fertige HD-Bilder können ins Projekt: Ordner `web/hd/` (beliebige Unterordner). Beim Veröffentlichen erzeugt `tools/hd-index.py` die Liste `web/hd/index.json`, und die Webseite lädt die Bilder für alle Spieler. In der Werkstatt lässt sich das mitgelieferte Paket abschalten; eigene Bilder gehen immer vor.
+
+Hinweis zu Rechten: Die HD-Bilder sind Bearbeitungen der Originalgrafik (Figuren und Marken gehören Kellogg's, die Grafik Factor 5/Rauser). Davids Entscheidung vom 18.10.2026: trotzdem ins Repo; bei einer Beschwerde der Rechteinhaber werden sie wieder entfernt.
 
 ## Ablauf
 

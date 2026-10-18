@@ -20,4 +20,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 print(f'http://localhost:{PORT}/web/')
+import subprocess
+subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hd-index.py')])  # HD-Bilderliste aktualisieren
 http.server.ThreadingHTTPServer(('127.0.0.1', PORT), Handler).serve_forever()

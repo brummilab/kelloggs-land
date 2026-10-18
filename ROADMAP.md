@@ -23,6 +23,7 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ✅ Capture sprites from their compiled draw code
 - ✅ Sprites in the side margins before they were ever on screen (rendered off-screen through the game's own draw routine, verified pixel-identical)
 - ✅ Flash/hit effect (sprite flag `0x100`) drawn as a colour-FFh silhouette, like the game's set/reset trick
+- ✅ Info windows and pause: centre taken from the original picture while the game loop stands still
 - ⬜ Check the flash effect and other special draw modes in actual play
 - ⬜ Foreground tiles and draw order checks
 - ⬜ Verify all levels and worlds, boss fights, bonus stages

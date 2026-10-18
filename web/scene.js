@@ -220,8 +220,19 @@ export class Scene {
         }
       }
     }
-    // Statusleiste und alles unterhalb des Spielfelds aus dem Originalbild
     const o32 = new Uint32Array(orig.rgba.buffer, orig.rgba.byteOffset, orig.width * orig.height);
+    // Spielschleife steht (Infofenster, Pause): Das Spiel zeichnet direkt in den Bildspeicher, die Szene
+    // bleibt stehen. Dann die Mitte aus dem Originalbild übernehmen, die Ränder aus der stehenden Szene.
+    // Passen die Randspalten des Originals nicht mehr zur Szene (anderer Bildschirm), Originalbild zeigen.
+    if (m.time - f.t > 0.1) {
+      let diff = 0, total = 0;
+      for (let y = 0; y < rows; y++) for (const x of [0, 1, 2, 3, 4, 5, 6, 7, 312, 313, 314, 315, 316, 317, 318, 319]) {
+        total++; if (o32[y * 320 + x] !== out[y * W + x + extra]) diff++;
+      }
+      if (diff > total * 0.3) return null;
+      for (let y = 0; y < rows; y++) out.set(o32.subarray(y * 320, y * 320 + 320), y * W + extra);
+    }
+    // Statusleiste und alles unterhalb des Spielfelds aus dem Originalbild
     for (let y = rows; y < H; y++) for (let x = 0; x < 320; x++) out[y * W + x + extra] = o32[y * 320 + x];
     return { width: W, height: H, rgba: new Uint8Array(out.buffer), playRows: rows };
   }

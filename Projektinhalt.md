@@ -4,6 +4,7 @@
 Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale START.EXE nach JavaScript übersetzen, auf emuliertem PC ausführen, Bild in HD per WebGL neu zeichnen.
 
 ## Entscheidungen
+- 18.10.2026: README und ROADMAP auf Englisch (Davids Wunsch); Projektinhalt und docs/ bleiben deutsch.
 - 18.10.2026: GitHub-Aktionen ab jetzt über den GitHub-MCP (Davids Wunsch).
 - 17.10.2026: Ansatz **echter Recomp** (nicht Engine-Nachbau).
 - 18.10.2026: Eigenständiges Projekt ohne Bezug auf andere Ports (Davids Wunsch). Recompiler wird selbst gebaut, ohne fremden Code.
@@ -26,6 +27,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: README komplett auf Englisch, ROADMAP.md angelegt (Phasen 0–7 mit Stand). docs/ bleiben deutsch.
 - 18.10.2026: Pages zeigte das Repo statt des Spiels: Quelle war wieder „Deploy from a branch“ (Jekyll rendert README). Auf „GitHub Actions“ umgestellt, neu veröffentlicht, Spielseite läuft.
 - 18.10.2026: Bezüge auf andere Projekte aus README, Webseite, ANALYSE.md und RECOMPILER.md entfernt (jetzt eigener Recompiler-Plan), About-Text angepasst.
 - 18.10.2026: GitHub-About gesetzt (Beschreibung + 10 Topics). GitHub Pages eingerichtet (Quelle: GitHub Actions, Workflow pages.yml veröffentlicht web/): https://brummilab.github.io/kelloggs-land-hd/

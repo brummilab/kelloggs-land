@@ -21,14 +21,25 @@ function setWide(on) {
   if (worker) worker.postMessage({ type: 'wide', on, gl: !!glr });
   if (!on) setGl(false);
 }
+// glActive: 'scene' (Breitbild-Level), 'frame' (Originalbild über den HD-Skalierer) oder false (2D-Canvas)
 function setGl(on) {
   if (glActive === on) return;
-  glActive = on; document.getElementById('stage').classList.toggle('gl', on);
+  glActive = on; document.getElementById('stage').classList.toggle('gl', !!on);
 }
-// WebGL-Breitbild: jedes Bildschirmbild zeichnen, mit Zwischenbildern zwischen den Szenen des Spiels
+// WebGL: jedes Bildschirmbild zeichnen, im Level mit Zwischenbildern zwischen den Szenen des Spiels
 function glLoop() {
-  if (glActive && glr && glr.draw()) countFrame();
+  if (glActive === 'scene' && glr.draw()) countFrame();
+  else if (glActive === 'frame' && glr.drawFrame(wideOn)) { /* Bildzähler läuft über die Worker-Bilder */ }
   requestAnimationFrame(glLoop);
+}
+// Grafik: HD (xBR-Kantenglättung) oder Pixel (Original-Pixel)
+let gfxMode = 'hd';
+try { gfxMode = localStorage.getItem('kelloggs-gfx') || 'hd'; } catch {}
+function setGfx(mode) {
+  gfxMode = mode; if (glr) glr.mode = mode;
+  const b = document.getElementById('gfx');
+  if (b) { b.textContent = mode === 'hd' ? 'Grafik: HD' : 'Grafik: Pixel'; b.setAttribute('aria-pressed', mode === 'hd' ? 'true' : 'false'); b.hidden = !glr; }
+  try { localStorage.setItem('kelloggs-gfx', mode); } catch {}
 }
 requestAnimationFrame(glLoop);
 // Zustand für Tests und Fehlersuche (Konsole: kelloggs)
@@ -119,6 +130,9 @@ function countFrame() {
 function onWorker(e) {
   const m = e.data;
   if (m.type === 'frame') {
+    countFrame(); loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.w}×${m.h} · Modus ${m.mode.toString(16).toUpperCase()}h`;
+    if (glr && gfxMode === 'hd') { glr.pushFrame(new Uint8Array(m.buf), m.w, m.h); setGl('frame'); return; }
+    setGl(false);
     if (off.width !== m.w || off.height !== m.h) { off.width = m.w; off.height = m.h; }
     offCtx.putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -128,10 +142,8 @@ function onWorker(e) {
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, x0, canvas.height); ctx.fillRect(x0 + w43, 0, canvas.width - x0 - w43, canvas.height);
       ctx.drawImage(off, x0, 0, w43, canvas.height);
     } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
-    setGl(false);
-    countFrame(); loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.w}×${m.h} · Modus ${m.mode.toString(16).toUpperCase()}h`;
   } else if (m.type === 'scene') {
-    glr.push(m.scene); setGl(true);
+    glr.push(m.scene); setGl('scene');
     loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `Breitbild WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}`;
   } else if (m.type === 'wide-support') {
     const btn = $('wide');
@@ -178,6 +190,8 @@ const drop = $('drop');
 drop.addEventListener('drop', (e) => { e.preventDefault(); start(e.dataTransfer.files); });
 
 $('wide').addEventListener('click', () => { setWide(!wideOn); canvas.focus(); });
+$('gfx').addEventListener('click', () => { setGfx(gfxMode === 'hd' ? 'pixel' : 'hd'); canvas.focus(); });
+setGfx(gfxMode);
 setWide(wideOn);
 $('full').addEventListener('click', async () => {
   try { await $('stage').requestFullscreen(); } catch { setStatus('Vollbild ist hier nicht verfügbar.'); }

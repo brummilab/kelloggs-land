@@ -44,7 +44,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/sb.js` | Sound Blaster (DSP 2.01) and 8237 DMA controller, timed to the virtual clock | ✅ |
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
-| `web/gl.js` | WebGL2 renderer for widescreen: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
+| `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate, HD mode with the xBR-lv2 pixel-art scaler | ✅ |
 | `web/scene.js`, `tools/hd-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |
@@ -77,7 +77,7 @@ Then open `http://localhost:8766/web/` and pick your copy of the game (ZIP, sing
 | Esc | back to the map without losing a life |
 | Enter | confirm menu (Start is preselected); Space continues on the title screen |
 
-Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars).
+Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Grafik: HD" smooths the pixel edges with the xBR scaler on the GPU (menus, title and levels); "Grafik: Pixel" shows the original pixels.
 
 ## Testing without a browser
 
@@ -109,6 +109,8 @@ The technical notes in `docs/` are written in German: [ANALYSE.md](docs/ANALYSE.
 `assets/logo.png` (icon) and `assets/banner.png` are original pixel graphics made with `python3 tools/make-logo.py`. They deliberately contain neither the Kellogg's lettering nor characters from the game. `assets/social-preview.png` is the GitHub preview image (Settings → Social preview).
 
 ## Acknowledgements
+
+The HD mode uses a WebGL port of Hyllian's xBR-lv2 shader (MIT, from [libretro/glsl-shaders](https://github.com/libretro/glsl-shaders)); the licence notice is in `web/gl.js`.
 
 The file format analysis by [movAX13h](https://github.com/movAX13h/tony-and-friends-in-kelloggs-land) was the most important groundwork. His code is not part of this repo (no licence). The game was made by Factor 5 and Rauser Advertainment; the characters belong to Kellogg's. This project is not affiliated with any of them.
 

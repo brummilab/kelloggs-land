@@ -4,6 +4,7 @@
 Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale START.EXE nach JavaScript übersetzen, auf emuliertem PC ausführen, Bild in HD per WebGL neu zeichnen.
 
 ## Entscheidungen
+- 18.10.2026: Keine KI-Hochskalierung; bessere Grafik von Hand über HD-Pakete (Grafik-Werkstatt). HD-Pakete nicht veröffentlichen (Spielgrafik).
 - 18.10.2026: HD zuerst über Pixel-Art-Skalierer im Shader (keine Grafikdateien im Repo); KI-HD-Paket später optional.
 - 18.10.2026: README und ROADMAP auf Englisch (Davids Wunsch); Projektinhalt und docs/ bleiben deutsch.
 - 18.10.2026: GitHub-Aktionen ab jetzt über den GitHub-MCP (Davids Wunsch).
@@ -28,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: KI-Variante von David abgelehnt, Punkt 3 umgesetzt: Grafik-Werkstatt im Browser. Export aller Kacheln des Levels und gesehenen Sprites als PNG (Original + 4-fach-Vorlage, Übersichtsblatt), Import eines HD-Pakets (Ordner/ZIP), Ersatz über Inhalts-Kennung, Spielfeld dann in 4-facher Auflösung, automatisches Umfärben (Einblenden, Wasser, Aufblitzen), Speicherung im Browser. Test im Headless-Chromium mit Test-Paket ok. Anleitung docs/HD-PAKET.md. Auch 4:3 läuft jetzt über WebGL.
 - 18.10.2026: KI-Hochskalierung getestet (Real-ESRGAN general-x4v3, animevideov3, x4plus_anime_6B; eigene numpy-Inferenz ohne torch, Gewichte von GitHub). anime_6B am saubersten, wirkt aber gemalt. Vergleichsbild an David, Entscheidung offen. Blender: nur sinnvoll, wenn Grafik von Hand neu modelliert wird.
 - 18.10.2026: Davids Feedback: xBR-Leiste gefällt, Spielfeld mit xBR wirkt wie „KI-Slop“; Infofenster flackert. Geändert: xBR nur noch für Statusleiste und Infofenster, Spielfeld/Menüs scharf-bilinear (gleichmäßige Pixel). Flackern behoben (einzelne Übergangsbilder wurden als „anderer Bildschirm“ erkannt, jetzt erst nach 20 Bildern).
 - 18.10.2026: HD-Modus Weg 1: xBR-lv2-Skalierer (Hyllian, MIT) auf der Grafikkarte für Level, Menüs und Titel, Umschalter „Grafik: HD / Pixel“. Weg 2 (KI-Hochskalierung als HD-Paket aus eigener PCKELL.DAT) bleibt optional für später.

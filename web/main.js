@@ -2,6 +2,7 @@
 
 import { readZip } from './zip.js';
 import { GLRenderer } from './gl.js';
+import { exportPack, readPack, savePackFiles, loadPackFiles, clearPackFiles } from './hdpack.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('screen'), ctx = canvas.getContext('2d');
@@ -142,15 +143,17 @@ function onWorker(e) {
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, x0, canvas.height); ctx.fillRect(x0 + w43, 0, canvas.width - x0 - w43, canvas.height);
       ctx.drawImage(off, x0, 0, w43, canvas.height);
     } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+  } else if (m.type === 'export') {
+    exportDone(m.gfx);
   } else if (m.type === 'scene') {
     glr.push(m.scene); setGl('scene');
-    loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `Breitbild WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}`;
+    loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.scene.extra ? 'Breitbild' : '4:3'} WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}${glr.pack.size ? ' · HD-Paket' : ''}`;
   } else if (m.type === 'wide-support') {
     const btn = $('wide');
     btn.disabled = !m.on;
     btn.title = m.on ? `Breitbild 16:9 für die ${m.name}` : 'Breitbild gibt es bisher nur für die deutsche Version (START.EXE mit 147 200 Bytes)';
-    if (m.on && wideOn) worker.postMessage({ type: 'wide', on: true, gl: !!glr });
-    else if (!m.on) setWide(false);
+    worker.postMessage({ type: 'wide', on: !!(m.on && wideOn), gl: !!glr });
+    if (!m.on && wideOn) setWide(false);
   } else if (m.type === 'audio') {
     debug.audioSamples += m.samples.length; debug.audioRate = m.rate;
     if (audioNode && soundOn) audioNode.port.postMessage({ samples: m.samples, rate: m.rate }, [m.samples.buffer]);
@@ -203,3 +206,38 @@ $('speed').addEventListener('change', (e) => { if (glr) glr.speed = +e.target.va
 
 // Startbild: Testbild im Spielrahmen
 ctx.fillStyle = '#0b1a63'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Grafik-Werkstatt: Grafiken exportieren, eigenes HD-Paket laden
+function hdStatus(t) { $('hdstatus').textContent = t; }
+$('hdexport').addEventListener('click', () => {
+  if (!worker) { hdStatus('Erst das Spiel laden und ins Level gehen.'); return; }
+  hdStatus('Sammle Grafiken …'); worker.postMessage({ type: 'export' });
+});
+async function exportDone(gfx) {
+  if (!gfx) { hdStatus('Gerade läuft kein Level. Geh ins Level und versuch es noch einmal.'); return; }
+  try {
+    const blob = await exportPack(gfx, (p) => hdStatus(`Erzeuge PNG-Dateien … ${Math.round(p * 100)} %`));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kelloggs-grafik.zip'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    hdStatus(`Exportiert: ${gfx.tiles.length} Kacheln, ${gfx.sprites.length} Sprites (kelloggs-grafik.zip).`);
+  } catch (e) { hdStatus(`Export fehlgeschlagen: ${e.message}`); }
+}
+async function usePack(entries, save) {
+  if (!glr) { hdStatus('HD-Pakete brauchen WebGL2.'); return; }
+  const pack = await readPack(entries);
+  glr.loadPack(pack);
+  if (save) { try { await savePackFiles(entries); } catch {} }
+  const t = [...pack.keys()].filter((k) => k[0] === 't').length;
+  hdStatus(pack.size ? `HD-Paket aktiv: ${t} Kacheln, ${pack.size - t} Sprites.` : 'Keine passenden Dateien gefunden (t_xxxxxxxx.png / s_xxxxxxxx.png).');
+  $('hdclear').hidden = !pack.size;
+}
+async function pickPack(fileList) {
+  hdStatus('Lade HD-Paket …');
+  const entries = [];
+  for (const f of fileList) entries.push([f.webkitRelativePath || f.name, new Uint8Array(await f.arrayBuffer())]);
+  try { await usePack(entries, true); } catch (e) { hdStatus(`HD-Paket ließ sich nicht laden: ${e.message}`); }
+}
+$('hdpick').addEventListener('change', (e) => pickPack(e.target.files));
+$('hdpickdir').addEventListener('change', (e) => pickPack(e.target.files));
+$('hdclear').addEventListener('click', async () => { if (glr) glr.loadPack(new Map()); try { await clearPackFiles(); } catch {} hdStatus('HD-Paket entfernt.'); $('hdclear').hidden = true; });
+loadPackFiles().then((e) => { if (e && e.length) usePack(e, false); }).catch(() => {});

@@ -45,6 +45,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
 | `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate, HD mode with the xBR-lv2 pixel-art scaler | ✅ |
+| `web/hdpack.js` | graphics workshop: export tiles/sprites as PNG + ZIP, load HD packs (own PNG decoder), keep them in IndexedDB | ✅ |
 | `web/scene.js`, `tools/hd-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |
@@ -78,6 +79,10 @@ Then open `http://localhost:8766/web/` and pick your copy of the game (ZIP, sing
 | Enter | confirm menu (Start is preselected); Space continues on the title screen |
 
 Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Grafik: HD" shows even, sharp pixels at any window size and smooths the status bar and info windows with the xBR scaler; "Grafik: Pixel" shows plain nearest-neighbour pixels.
+
+## Your own HD graphics (graphics workshop)
+
+Below the game, "Grafik-Werkstatt" exports all tiles of the current level and every sprite seen so far as PNGs (original size and a 4× template), taken from your own copy of the game. Improve the templates in any paint program and load them back as an **HD pack** (folder or ZIP): they replace the originals immediately, at 4× resolution, recoloured automatically for fades, water and hit flashes. Packs stay in your browser and are never uploaded. Guide (German): [docs/HD-PAKET.md](docs/HD-PAKET.md). An HD pack contains edited game graphics, so please don't publish it.
 
 ## Testing without a browser
 

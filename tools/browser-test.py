@@ -3,7 +3,8 @@
 
     python3 tools/browser-test.py <spielordner> <ausgabeordner> [skript]
 
-Skript: kommagetrennte Schritte  "wait:5", "shot:name", "key:Enter", "hold:ArrowRight:1.5"
+Skript: kommagetrennte Schritte  "wait:5", "shot:name", "key:Enter", "hold:ArrowRight:1.5",
+"upload:#hdpick:/pfad.zip", "download:#hdexport:/ziel.zip", "text:#hdstatus"
 Läuft in Echtzeit, der Server wird automatisch gestartet.
 """
 import os
@@ -46,6 +47,14 @@ try:
                 page.screenshot(path=os.path.join(out, a[0] + '.png'))
             elif kind == 'key':
                 page.keyboard.down(a[0]); time.sleep(0.15); page.keyboard.up(a[0])
+            elif kind == 'upload':      # upload:#selector:/pfad/datei
+                page.set_input_files(a[0], a[1])
+            elif kind == 'download':    # download:#knopf:/pfad/ziel  (Klick, der einen Download auslöst)
+                with page.expect_download(timeout=180000) as d:
+                    page.click(a[0])
+                d.value.save_as(a[1]); print('download', a[1])
+            elif kind == 'text':        # text:#selector
+                print('text', a[0], page.inner_text(a[0]))
             elif kind == 'hold':
                 page.keyboard.down(a[0]); time.sleep(float(a[1])); page.keyboard.up(a[0])
         print('Ton-Knopf:', page.inner_text('#sound'))

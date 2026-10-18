@@ -39,8 +39,8 @@ function tick() {
   lastFrame = m.vga.frames;
   const load = busy / (dt * 1000 || 1);
   // Breitbild mit WebGL: Szenendaten an die Seite, die zeichnet selbst (mit Zwischenbildern)
-  if (wide && gl && scene) {
-    const s = scene.snapshot();
+  if (gl && scene) {
+    const s = scene.snapshot(wide ? 53 : 0);
     if (s) {
       const tr = [s.map.buffer, s.pal.buffer, s.mask.buffer, s.status.buffer];
       if (s.overlay) tr.push(s.overlay.buffer);
@@ -85,6 +85,9 @@ onmessage = (e) => {
     audioOn = msg.on; audioChunks = [];
   } else if (msg.type === 'wide') {
     wide = msg.on; gl = !!msg.gl; lastFrame = -1;
+  } else if (msg.type === 'export') {
+    const g = scene && scene.exportGfx();
+    postMessage({ type: 'export', gfx: g });
   } else if (msg.type === 'speed') {
     speed = msg.value;
   }

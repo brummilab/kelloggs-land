@@ -7,7 +7,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - 18.10.2026: GitHub-Aktionen ab jetzt über den GitHub-MCP (Davids Wunsch).
 - 17.10.2026: Ansatz **echter Recomp** (nicht Engine-Nachbau).
 - 18.10.2026: Eigenständiges Projekt ohne Bezug auf andere Ports (Davids Wunsch). Recompiler wird selbst gebaut, ohne fremden Code.
-- 18.10.2026: Commits über GitHub-Noreply-Adresse (E-Mail-Datenschutz im Konto aktiv).
+- 18.10.2026: Commits über GitHub-Noreply-Adresse (E-Mail-Datenschutz im Konto aktiv), ohne Co-Authored-By-Zeile (claude soll nicht bei den Contributors stehen).
 - 17.10.2026: Repo unter `github.com/brummilab/kelloggs-land-hd`, Branch `main` (anfangs privat, seit 18.10.2026 öffentlich).
 - Keine Spieldaten im Repo, Spieler bringt eigene Kopie mit (Ordner `game/`, in `.gitignore`).
 - Code von movAX13h wird nicht übernommen (keine Lizenz), nur als Referenz genutzt.

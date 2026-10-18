@@ -26,6 +26,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Pages zeigte das Repo statt des Spiels: Quelle war wieder „Deploy from a branch“ (Jekyll rendert README). Auf „GitHub Actions“ umgestellt, neu veröffentlicht, Spielseite läuft.
 - 18.10.2026: Bezüge auf andere Projekte aus README, Webseite, ANALYSE.md und RECOMPILER.md entfernt (jetzt eigener Recompiler-Plan), About-Text angepasst.
 - 18.10.2026: GitHub-About gesetzt (Beschreibung + 10 Topics). GitHub Pages eingerichtet (Quelle: GitHub Actions, Workflow pages.yml veröffentlicht web/): https://brummilab.github.io/kelloggs-land-hd/
 - 18.10.2026: David hat Breitbild getestet: läuft gut.

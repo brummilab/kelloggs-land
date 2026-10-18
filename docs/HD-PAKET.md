@@ -11,10 +11,10 @@ Die Grafiken stammen immer aus der eigenen Spielkopie. Ein HD-Paket enthält bea
 
    | Ordner/Datei | Inhalt |
    |---|---|
-   | `original/kacheln/t_<kennung>.png` | alle Kacheln des aktuellen Levels, 16×16 |
-   | `original/sprites/s_<kennung>.png` | alle bisher gesehenen Figuren-Bilder, Originalgröße, transparent |
+   | `original/kacheln/NNN_t_<kennung>.png` | alle Kacheln des aktuellen Levels, 16×16 |
+   | `original/sprites/NNN_s_<kennung>.png` | alle bisher gesehenen Figuren-Bilder, Originalgröße, transparent |
    | `hd-vorlage/…` | dieselben Bilder 4-fach vergrößert (Kachel 64×64): **hier drin zeichnen** |
-   | `uebersicht-kacheln.png` | alle Kacheln des Levels auf einem Blatt |
+   | `uebersicht-kacheln.png`, `uebersicht-sprites.png` | alle Bilder auf einem Blatt, jeweils mit der Nummer NNN aus dem Dateinamen |
    | `LIESMICH.txt` | Kurzanleitung |
 
 3. Bilder aus `hd-vorlage/` im Grafikprogramm verbessern (Aseprite, Krita, GIMP, Photoshop …). Dateiname und Seitenverhältnis bleiben gleich.
@@ -22,7 +22,7 @@ Die Grafiken stammen immer aus der eigenen Spielkopie. Ein HD-Paket enthält bea
 
 ## Regeln für die Bilder
 
-- **Dateiname** `t_xxxxxxxx.png` (Kachel) bzw. `s_xxxxxxxx.png` (Sprite). Die Kennung ist ein Prüfwert über die Original-Pixel. Gleiche Kachel in mehreren Leveln = gleiche Kennung, also nur einmal zeichnen. Ordner im Paket sind egal; `original/` wird beim Laden übersprungen.
+- **Dateiname** endet auf `t_xxxxxxxx.png` (Kachel) bzw. `s_xxxxxxxx.png` (Sprite); die Nummer davor ist nur zum Finden. Die Kennung ist ein Prüfwert über die Original-Pixel. Gleiche Kachel in mehreren Leveln = gleiche Kennung, also nur einmal zeichnen. Ordner im Paket sind egal; `original/` wird beim Laden übersprungen.
 - **Größe**: 4-fach (Kachel 64×64, Sprite Breite·4 × Höhe·4). 1-, 2- und 8-fach wird beim Laden umgerechnet.
 - **Format**: PNG, RGB/RGBA/Palette/Graustufen, 1–8 Bit. Bei Sprites zählt die Transparenz (Alpha < 50 % = durchsichtig). Die Figur darf innerhalb ihres Rahmens etwas größer oder kleiner werden.
 - **Farben** sind frei. Das Spiel färbt HD-Grafik automatisch passend um: beim Einblenden, im Wasser (dort nutzt das Spiel die zweite Palettenhälfte über die PEL-Maske) und beim Aufblitzen nach einem Treffer (weiße Silhouette).

@@ -38,6 +38,7 @@ export class CPU {
     this.halted = false;
     this.icount = 0;
     this.trace = new Uint32Array(256); this.tracePos = 0; // CS<<16|IP der letzten Befehle
+    this.bps = []; this.bpFlag = new Uint8Array(65536);
   }
 
   // ---------- Speicher ----------
@@ -240,7 +241,11 @@ export class CPU {
     while (this.icount < end && !this.halted) this.step();
   }
 
+  // Haltepunkte: bps[ip] = [{cs, fn}], billig genug für jeden Befehl
+  addBreakpoint(cs, ip, fn) { (this.bps[ip] ||= []).push({ cs, fn }); this.bpFlag[ip] = 1; }
+
   step() {
+    if (this.bpFlag[this.ip]) for (const b of this.bps[this.ip]) if (b.cs === this.sreg[CS]) b.fn();
     this.trace[this.tracePos++ & 255] = (this.sreg[CS] << 16) | this.ip;
     this.icount++;
     this.startIp = this.ip;

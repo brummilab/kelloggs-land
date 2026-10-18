@@ -12,7 +12,7 @@ export class VGA {
     this.attr = new Uint8Array(32);
     this.dac = new Uint8Array(768);
     this.seqIdx = 0; this.gcIdx = 0; this.crtcIdx = 0; this.attrIdx = 0; this.attrFlip = 0;
-    this.dacW = 0; this.dacR = 0; this.dacSub = 0; this.misc = 0x63; this.pelMask = 0xff;
+    this.dacW = 0; this.dacR = 0; this.dacSub = 0; this.misc = 0x63; this.pelMask = 0xff; this.rowMask = new Uint8Array(480).fill(0xff);
     this.mode = 3;
     this.frames = 0;
     this.setMode(3);
@@ -229,6 +229,7 @@ export class VGA {
       const split = s > tm.lc;
       const addr = split ? Math.floor((s - tm.lc - 1) / g.scan) * g.pitch : this.curStart + row * g.pitch;
       const pan = split && (this.attr[0x10] & 0x20) ? 0 : this.attr[0x13] & 0xf;
+      if (this.rowMask) this.rowMask[row] = this.pelMask;
       this.drawRow(out, row, addr, pan, g, pal);
     }
     this.nextScan = sEnd;

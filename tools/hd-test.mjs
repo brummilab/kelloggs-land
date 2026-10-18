@@ -42,7 +42,7 @@ for (const [dt, name] of shots) {
   let diff = 0, total = 0;
   const o32 = new Uint32Array(orig.rgba.buffer), h32 = new Uint32Array(hd.rgba.buffer), ex = (hd.width - 320) / 2;
   for (let y = 0; y < hd.playRows; y++) for (let x = 0; x < 320; x++) { total++; if (o32[y * 320 + x] !== h32[y * hd.width + x + ex]) diff++; }
-  console.log(`${name}: Kamera (${sc.frame.camX},${sc.frame.camY}), ${sc.frame.sprites.length} Sprites, ${sc.sprites.size} Sprite-Bilder im Cache, Abweichung Mitte ${(diff / total * 100).toFixed(2)} %`);
+  console.log(`${name}: Kamera (${sc.frame.camX},${sc.frame.camY}), ${sc.frame.sprites.length} Sprites, ${sc.sprites.size} Sprite-Bilder im Cache (${sc.stats.offscreen || 0} abseits, ${sc.failed.size} fehlgeschlagen), Abweichung Mitte ${(diff / total * 100).toFixed(2)} %`);
   png(path.join(out, `hd_${name}.png`), hd);
   png(path.join(out, `orig_${name}.png`), orig);
 }

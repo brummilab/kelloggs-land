@@ -75,6 +75,9 @@ Umgesetzt und im Browser schaltbar („Breitbild“):
 - **Szene pro Bild**: Haltepunkt am Anfang von `draw_sprite_list` (seg3:b073) liest Kamera (`c1c8`/`c1cc`) und Sprite-Liste.
 - **Kacheln**: Karte über far `b588` (Eintrag `& 0x1FF`), Grafikindex aus der **far-Tabelle `b590`** (4 Bytes je Kachel, Selektor in `b592`), Kachelbytes ab **far `b594`** (Selektor = das GS der Zeichenroutine), Offset `index·256` **mit 32 Bit** (Kacheln über Index 255 liegen jenseits von 64 KB: Wolken, Baumstamm).
 - **Sprites**: Haltepunkt bei `draw_sprite` (seg3:0002; Stack: `flags` bei SP+4, `frame` +6, `y` +8, `x` +10). Solange der kompilierte Sprite-Code läuft, werden seine VGA-Schreibzugriffe in Sprite-Koordinaten umgerechnet (Ring: Basis `c1d4`, Zeilenbreite `c1d0`, Ringgröße `c1da`, Scroll `c1b0`/`c1b4`) und je Bildnummer als Indexbild gecacht. Nur vollständig sichtbare Sprites werden mitgeschnitten; fehlt ein Bild noch, kommt sein Rahmen aus dem Originalbild.
+- **Sprites, die noch nie ganz im Bild waren** (z. B. Gegner im zusätzlichen Rand): `renderOffscreen()` ruft `draw_sprite` des Spiels mit einer Position knapp im Bild auf, schneidet die Schreibzugriffe mit und lässt sie nicht in den Bildspeicher. Davor werden CPU-Register, DGROUP (64 KB) und VGA-Register gesichert und danach zurückgesetzt. Höchstens 6 neue Bilder je Bild. Prüfung: Für alle 10 Bilder aus Level 1 ist das abseits gezeichnete Bild pixelgleich mit dem Mitschnitt, und das Spiel läuft danach unverändert weiter (Mitte 0,00 %).
+- **Adressrechnung**: Startadresse wie in `draw_sprite`: `(c1d4 + (sy + scrollY)·c1d0 + (sx + scrollX)/4) & FFFFh`, Ausrichtung `(sx + scrollX) & 3`. Jede Schreibadresse wird relativ dazu in Zeile/Spalte umgerechnet (vorher über den Ring, das lag teils eine Zeile daneben).
+- **Aufblitzen** (Flag `0x100`): Das Spiel setzt Set/Reset im Grafik-Controller auf FFh, alle Pixel bekommen Farbe FFh. Im Breitbild wird das Sprite als Silhouette in Farbe FFh gezeichnet.
 - **Paletten-Trick**: die PEL-Maske je Bildzeile (`vga.rowMask`) wird auch im Breitbild pro Zeile angewendet.
 - **Statusleiste**: aus dem Originalbild, mittig.
 - **Breite**: 320 + 2·53 = 426 Spielpixel, auf 16:9 skaliert (die Pixel sind wie im Original höher als breit).
@@ -89,4 +92,4 @@ Pro Bild kann der Emulator vor `draw_sprite_list` eine **Szenenbeschreibung** au
 - zwischen zwei Spielbildern interpolieren,
 - jede Kachel und jedes Sprite durch eine hochauflösende Fassung ersetzen (HD-Paket, lokal aus der eigenen PCKELL.DAT erzeugt, z. B. mit Real-ESRGAN).
 
-Offen: Effekt-Flags (Aufblitzen `0x100`), Vordergrund-Kacheln (Sprites hinter Kacheln?), weitere Level und Figuren prüfen, Interpolation zwischen Bildern, HD-Grafikpaket.
+Offen: Aufblitzen im laufenden Spiel prüfen, Vordergrund-Kacheln (Sprites hinter Kacheln?), weitere Level und Figuren prüfen, Interpolation zwischen Bildern, HD-Grafikpaket.

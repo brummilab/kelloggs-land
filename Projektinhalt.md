@@ -27,6 +27,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Breitbild: Sprites im Rand werden jetzt über die Zeichenroutine des Spiels abseits gezeichnet (vorher fehlten Gegner, die noch nie ganz im Bild waren). Adressrechnung der Sprite-Mitschnitte korrigiert (teils 1 Zeile versetzt). Aufblitzen (Flag 0x100) als Silhouette. Geprüft: abseits gezeichnete Bilder pixelgleich, Spiel läuft unverändert weiter.
 - 18.10.2026: README komplett auf Englisch, ROADMAP.md angelegt (Phasen 0–7 mit Stand). docs/ bleiben deutsch.
 - 18.10.2026: Pages zeigte das Repo statt des Spiels: Quelle war wieder „Deploy from a branch“ (Jekyll rendert README). Auf „GitHub Actions“ umgestellt, neu veröffentlicht, Spielseite läuft.
 - 18.10.2026: Bezüge auf andere Projekte aus README, Webseite, ANALYSE.md und RECOMPILER.md entfernt (jetzt eigener Recompiler-Plan), About-Text angepasst.

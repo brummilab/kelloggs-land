@@ -245,6 +245,7 @@ export class Scene {
 // Sprite-Liste, Palette, PEL-Maske je Zeile, Statusleiste. Neue Kachel- und Sprite-Grafiken werden
 // einmal mitgeschickt. Gibt null zurück, wenn gerade kein Level läuft.
 Scene.prototype.snapshot = function (extra = 53) {
+  this.offLevel = this.offLevel || 0;
   const f = this.frame, m = this.m, vga = m.vga;
   const orig = vga.last || vga.render();
   if (!f || orig.width !== 320) return null;
@@ -293,6 +294,7 @@ Scene.prototype.snapshot = function (extra = 53) {
   }
   // Spielschleife steht (Infofenster, Pause): Mitte aus dem Original; anderer Bildschirm: kein Level
   let overlay = null;
+  if (!(m.time - f.t > 0.1)) this.offLevel = 0;
   if (m.time - f.t > 0.1) {
     const pal = vga.palette32();
     let diff = 0, total = 0;
@@ -307,7 +309,9 @@ Scene.prototype.snapshot = function (extra = 53) {
         total++; if (o32[y * 320 + x] !== pal[ci & mask]) diff++;
       }
     }
-    if (diff > total * 0.5) return null;
+    // Erst nach mehreren Bildern hintereinander als „anderer Bildschirm“ werten, sonst flackert es
+    // beim Öffnen des Infofensters (einzelne Bilder mit Übergang)
+    if (diff > total * 0.5) { if (++this.offLevel > 20) return null; } else this.offLevel = 0;
     overlay = new Uint8Array(orig.rgba.buffer.slice(orig.rgba.byteOffset, orig.rgba.byteOffset + 320 * rows * 4));
   }
   const pal = new Uint8Array(vga.palette32().slice().buffer);

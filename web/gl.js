@@ -101,6 +101,13 @@ float c_df(vec3 c1, vec3 c2) { vec3 d = abs(c1 - c2); return d.r + d.g + d.b; }
 void main() {
   ivec2 p = ivec2(floor(vSrc));
   if (uHD == 0) { o = vec4(T(p), 1.0); return; }
+  if (uHD == 2) {
+    // scharf-bilinear: Pixel bleiben scharf und gleich groß, nur die Kante wird auf einen Bildschirmpixel geglättet
+    vec2 q = vSrc - 0.5, b0 = floor(q), f = clamp((q - b0 - 0.5) * uScale + 0.5, 0.0, 1.0);
+    ivec2 i0 = ivec2(b0);
+    vec3 c = mix(mix(T(i0), T(i0 + ivec2(1, 0)), f.x), mix(T(i0 + ivec2(0, 1)), T(i0 + ivec2(1, 1)), f.x), f.y);
+    o = vec4(c, 1.0); return;
+  }
   vec2 fp = fract(vSrc);
   vec3 A1 = T(p + ivec2(-1,-2)), B1 = T(p + ivec2(0,-2)), C1 = T(p + ivec2(1,-2));
   vec3 A = T(p + ivec2(-1,-1)), B = T(p + ivec2(0,-1)), C = T(p + ivec2(1,-1));
@@ -257,8 +264,8 @@ export class GLRenderer {
   }
 
   // Quelltextur hochskaliert ins Ausgaberechteck zeichnen. Ausgabe in Spielpixeln (rect, view),
-  // Quelle in Texeln (src = Ursprung und Größe). Pixel: nächster Nachbar; HD: xBR-lv2.
-  scale(tex, texW, texH, rect, view, src, outPx) {
+  // Quelle in Texeln (src = Ursprung und Größe). filter: 0 nächster Nachbar, 1 xBR-lv2, 2 scharf-bilinear.
+  scale(tex, texW, texH, rect, view, src, outPx, filter) {
     const gl = this.gl, P = this.sc;
     gl.useProgram(P.p);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(P.u.uSrc, 0);
@@ -266,7 +273,7 @@ export class GLRenderer {
     gl.uniform4f(P.u.uRect, rect[0], rect[1], rect[2], rect[3]); gl.uniform2f(P.u.uView, view[0], view[1]);
     gl.uniform4f(P.u.uSrcRect, src[0], src[1], src[2], src[3]);
     gl.uniform1f(P.u.uScale, Math.max(1, outPx));
-    gl.uniform1i(P.u.uHD, this.mode === 'hd' ? 1 : 0);
+    gl.uniform1i(P.u.uHD, filter);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -279,7 +286,7 @@ export class GLRenderer {
     if (wide) { const w43 = Math.round(box[3] * 4 / 3); box[0] += (box[2] - w43) >> 1; box[2] = w43; }
     gl.viewport(box[0], box[1], box[2], box[3]);
     gl.bindVertexArray(this.vao);
-    this.scale(this.tOrig, f.w, f.h, [0, 0, f.w, f.h], [f.w, f.h], [0, 0, f.w, f.h], box[2] / f.w);
+    this.scale(this.tOrig, f.w, f.h, [0, 0, f.w, f.h], [f.w, f.h], [0, 0, f.w, f.h], box[2] / f.w, this.mode === 'hd' ? 2 : 0);
     return true;
   }
 
@@ -355,8 +362,10 @@ export class GLRenderer {
     const box = this.fit(16 / 9);
     gl.viewport(box[0], box[1], box[2], box[3]);
     const px = box[2] / VW;
-    this.scale(this.fboTex, FW, FH, [0, 0, VW, s.rows], [VW, VH], [fx, fy, VW, s.rows], px);
-    this.scale(this.tStatus, 320, s.H - s.rows, [s.extra, s.rows, 320, s.H - s.rows], [VW, VH], [0, 0, 320, s.H - s.rows], px);
+    // HD: Spielfeld scharf-bilinear (Originalpixel, gleichmäßig), Statusleiste und Infofenster mit xBR geglättet
+    const hd = this.mode === 'hd';
+    this.scale(this.fboTex, FW, FH, [0, 0, VW, s.rows], [VW, VH], [fx, fy, VW, s.rows], px, hd ? (s.overlay ? 1 : 2) : 0);
+    this.scale(this.tStatus, 320, s.H - s.rows, [s.extra, s.rows, 320, s.H - s.rows], [VW, VH], [0, 0, 320, s.H - s.rows], px, hd ? 1 : 0);
     return true;
   }
 }

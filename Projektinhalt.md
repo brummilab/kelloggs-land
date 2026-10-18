@@ -28,6 +28,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: KI-Hochskalierung getestet (Real-ESRGAN general-x4v3, animevideov3, x4plus_anime_6B; eigene numpy-Inferenz ohne torch, Gewichte von GitHub). anime_6B am saubersten, wirkt aber gemalt. Vergleichsbild an David, Entscheidung offen. Blender: nur sinnvoll, wenn Grafik von Hand neu modelliert wird.
 - 18.10.2026: Davids Feedback: xBR-Leiste gefällt, Spielfeld mit xBR wirkt wie „KI-Slop“; Infofenster flackert. Geändert: xBR nur noch für Statusleiste und Infofenster, Spielfeld/Menüs scharf-bilinear (gleichmäßige Pixel). Flackern behoben (einzelne Übergangsbilder wurden als „anderer Bildschirm“ erkannt, jetzt erst nach 20 Bildern).
 - 18.10.2026: HD-Modus Weg 1: xBR-lv2-Skalierer (Hyllian, MIT) auf der Grafikkarte für Level, Menüs und Titel, Umschalter „Grafik: HD / Pixel“. Weg 2 (KI-Hochskalierung als HD-Paket aus eigener PCKELL.DAT) bleibt optional für später.
 - 18.10.2026: WebGL-Renderer fürs Breitbild (web/gl.js): Worker schickt nur noch Szenendaten, die Grafikkarte zeichnet; Zwischenbilder für flüssiges Scrollen (Kamera und Sprites interpoliert, Monitor-Bildrate). Ohne WebGL2 bleibt der Software-Weg. Test in Headless-Chromium ok, echter Test durch David offen.

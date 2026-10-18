@@ -1,0 +1,8 @@
+{
+  "name": "kelloggs-land-hd",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "run": "node tools/run.mjs game"
+  }
+}

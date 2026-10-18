@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.png" alt="Kellogg's Land HD" width="100%"></p>
+
 # Kellogg's Land HD
 
 Static Recompilation von **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advertainment, DOS 1994) für den Browser, nach dem Vorbild von [Stunts HD](https://github.com/mr-finster/stunts-hd).
@@ -85,6 +87,10 @@ node tools/run.mjs game --seconds 40 --shots 12,20,40 --out out
 Ablauf im Original: Factor-5-Logo (ca. 6 s), Kellogg's-Intro (12–20 s), Titelbild (ab ca. 24 s, weiter mit Leertaste), Hinweistexte, Hauptmenü. Ins erste Level: `--keys 30:space,40:enter,50:enter,60:space,72:enter,80:enter,85:space`.
 
 Browser-Test: `python3 tools/browser-test.py game out "wait:30,key:Space,wait:5,shot:a"` Der Interpreter schafft etwa 20 Mio. Befehle pro Sekunde, also mehr als Echtzeit (virtuell 15 Mio./s).
+
+## Logo
+
+`assets/logo.png` (Icon) und `assets/banner.png` sind eigene Pixel-Grafiken, erzeugt mit `python3 tools/make-logo.py`. Sie enthalten bewusst weder den Kellogg's-Schriftzug noch Figuren aus dem Spiel. `assets/social-preview.png` ist das Vorschaubild für GitHub (Settings → Social preview).
 
 ## Danksagung
 

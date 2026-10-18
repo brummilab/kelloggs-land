@@ -29,7 +29,28 @@ for (const f of fs.readdirSync(dir)) {
 fs.mkdirSync(outDir, { recursive: true });
 
 const t0 = Date.now();
-const m = new Machine({ files, log: (s) => console.log(`[${m.time.toFixed(2)}s] ${s}`) });
+// Ton mitschneiden (--wav datei.wav): Proben auf 44,1 kHz umrechnen
+const wavOut = opt('wav', null);
+const audio = []; let audioPhase = 0;
+function onSamples(buf, rate) {
+  if (!wavOut) return;
+  const step = rate / 44100;
+  for (; audioPhase < buf.length - 1; audioPhase += step) {
+    const i = Math.floor(audioPhase), f = audioPhase - i;
+    audio.push(buf[i] * (1 - f) + buf[i + 1] * f);
+  }
+  audioPhase -= buf.length - 1;
+}
+function writeWav(file) {
+  const n = audio.length, b = Buffer.alloc(44 + n * 2);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16);
+  b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(44100, 24); b.writeUInt32LE(88200, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34);
+  b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) b.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(audio[i] * 32767))), 44 + i * 2);
+  fs.writeFileSync(file, b);
+  console.log(`Ton -> ${file} (${(n / 44100).toFixed(1)} s)`);
+}
+const m = new Machine({ files, onSamples, sound: !argv.includes('--nosound'), log: (s) => console.log(`[${m.time.toFixed(2)}s] ${s}`) });
 m.verbose = argv.includes('--verbose');
 m.load();
 
@@ -75,6 +96,9 @@ const c = m.cpu;
 console.log(`\n${c.icount.toLocaleString('de-AT')} Befehle, ${m.time.toFixed(2)} s virtuell, ${((Date.now() - t0) / 1000).toFixed(1)} s echt`);
 console.log('Aufrufe:', [...m.stats.entries()].sort().map(([k, v]) => `${k}=${v}`).join('  '));
 png(path.join(outDir, 'last.png'), m.frame());
+m.sb.flush();
+if (wavOut) writeWav(wavOut);
+console.log('DSP-Befehle:', [...m.sb.commands.entries()].map(([k, v]) => `${k.toString(16)}h=${v}`).join(' '));
 if (err) {
   console.log('\nFEHLER: ' + err.message);
   console.log(c.dumpRegs());

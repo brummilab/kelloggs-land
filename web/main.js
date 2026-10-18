@@ -6,6 +6,29 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('screen'), ctx = canvas.getContext('2d');
 const off = document.createElement('canvas'), offCtx = off.getContext('2d');
 let worker = null, started = false;
+let audio = null, audioNode = null, soundOn = false;
+// Zustand für Tests und Fehlersuche (Konsole: kelloggs)
+const debug = { audioSamples: 0, audioRate: 0, get audioState() { return audio ? audio.state : 'aus'; } };
+window.kelloggs = debug;
+
+// Ton erst nach einem Klick (Browser-Regel für Autoplay)
+async function setSound(on) {
+  try {
+    if (on && !audio) {
+      audio = new AudioContext({ latencyHint: 'interactive' });
+      await audio.audioWorklet.addModule(new URL('./audio-worklet.js', import.meta.url));
+      audioNode = new AudioWorkletNode(audio, 'sb-player', { outputChannelCount: [2] });
+      audioNode.connect(audio.destination);
+    }
+    if (audio) { if (on) await audio.resume(); else await audio.suspend(); }
+    soundOn = on;
+  } catch (e) {
+    soundOn = false; setStatus(`Ton lässt sich hier nicht abspielen: ${e.message}`, 'error');
+  }
+  $('sound').textContent = soundOn ? 'Ton aus' : 'Ton an';
+  $('sound').setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  if (worker) worker.postMessage({ type: 'audio', on: soundOn });
+}
 
 // KeyboardEvent.code -> Scancode (Set 1)
 const SCAN = {
@@ -53,6 +76,7 @@ async function start(fileList) {
   worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   worker.onmessage = onWorker;
   worker.postMessage({ type: 'start', files, hiscore });
+  worker.postMessage({ type: 'audio', on: soundOn });
   setStatus('Läuft. Klick ins Bild, falls die Tasten nicht reagieren.');
   canvas.focus();
 }
@@ -72,6 +96,9 @@ function onWorker(e) {
       $('fps').textContent = `${Math.round(frames * 1000 / (now - lastFps))} fps · CPU ${Math.round(loadAvg * 100)} %`;
       frames = 0; lastFps = now;
     }
+  } else if (m.type === 'audio') {
+    debug.audioSamples += m.samples.length; debug.audioRate = m.rate;
+    if (audioNode && soundOn) audioNode.port.postMessage({ samples: m.samples, rate: m.rate }, [m.samples.buffer]);
   } else if (m.type === 'log') {
     const l = $('log'); l.textContent += m.text + '\n'; l.scrollTop = l.scrollHeight;
   } else if (m.type === 'error') {
@@ -97,6 +124,9 @@ window.addEventListener('keyup', (e) => key(e, false));
 window.addEventListener('blur', () => worker && worker.postMessage({ type: 'pause', on: true }));
 window.addEventListener('focus', () => worker && worker.postMessage({ type: 'pause', on: false }));
 
+// Beim Laden des Spiels gleich den Ton einschalten: die Dateiauswahl ist ein Klick des Nutzers
+$('pick').addEventListener('click', () => { if (!soundOn) setSound(true); });
+$('pickdir').addEventListener('click', () => { if (!soundOn) setSound(true); });
 $('pick').addEventListener('change', (e) => start(e.target.files));
 $('pickdir').addEventListener('change', (e) => start(e.target.files));
 const drop = $('drop');
@@ -108,6 +138,8 @@ $('full').addEventListener('click', async () => {
   try { await $('stage').requestFullscreen(); } catch { setStatus('Vollbild ist hier nicht verfügbar.'); }
   canvas.focus();
 });
+$('sound').addEventListener('click', () => { setSound(!soundOn); canvas.focus(); });
+$('volume').addEventListener('input', (e) => audioNode && audioNode.port.postMessage({ vol: +e.target.value }));
 $('speed').addEventListener('change', (e) => worker && worker.postMessage({ type: 'speed', value: +e.target.value }));
 
 // Startbild: Testbild im Spielrahmen

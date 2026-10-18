@@ -3,6 +3,19 @@
 import { Machine } from './machine.js';
 
 let m = null, last = 0, paused = false, speed = 1, lastFrame = -1;
+let audioOn = false, audioChunks = [], audioRate = 20000;
+
+function onSamples(buf, rate) {
+  if (!audioOn) return;
+  audioChunks.push(buf); audioRate = rate;
+}
+function sendAudio() {
+  if (!audioChunks.length) return;
+  const n = audioChunks.reduce((a, b) => a + b.length, 0), all = new Float32Array(n);
+  let o = 0; for (const b of audioChunks) { all.set(b, o); o += b.length; }
+  audioChunks = [];
+  postMessage({ type: 'audio', samples: all, rate: audioRate }, [all.buffer]);
+}
 
 function log(text) { postMessage({ type: 'log', text }); }
 
@@ -14,6 +27,7 @@ function tick() {
   const t0 = performance.now();
   try {
     m.run(dt);
+    m.sb.flush(); sendAudio();
   } catch (e) {
     postMessage({ type: 'error', text: `${e.message}\n${m.cpu.dumpRegs()}\n${m.cpu.lastTrace(16)}` });
     m = null; return;
@@ -29,7 +43,7 @@ function tick() {
 onmessage = (e) => {
   const msg = e.data;
   if (msg.type === 'start') {
-    m = new Machine({ files: msg.files, log });
+    m = new Machine({ files: msg.files, log, onSamples });
     try {
       const hs = msg.hiscore; if (hs) m.files.set('HISCORE.DAT', hs);
       m.load();
@@ -48,6 +62,8 @@ onmessage = (e) => {
     if (msg.down) m.keyDown(msg.scan); else m.keyUp(msg.scan);
   } else if (msg.type === 'pause') {
     paused = msg.on; last = performance.now();
+  } else if (msg.type === 'audio') {
+    audioOn = msg.on; audioChunks = [];
   } else if (msg.type === 'speed') {
     speed = msg.value;
   }

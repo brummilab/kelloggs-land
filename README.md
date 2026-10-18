@@ -4,7 +4,7 @@ Static Recompilation von **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser
 
 Die originale `START.EXE` wird Befehl für Befehl nach JavaScript übersetzt und auf einem kleinen emulierten PC ausgeführt. Ein WebGL-Renderer zeichnet das Bild danach neu, in HD, Breitbild und ohne Ruckeln. Weil der echte Spielcode läuft, verhalten sich Steuerung, Gegner und Level genau wie im Original.
 
-> **Status:** Phase 3 erledigt. Das Spiel läuft im Browser und ist spielbar: Intro, Menü, Weltkarte und erstes Level mit Statusleiste, Raster-Effekten und Tastatursteuerung. Es läuft noch im Interpreter (kein Recompiler), ohne Ton und in Originalauflösung.
+> **Status:** Phase 5 (Ton) erledigt. Das Spiel läuft im Browser mit Musik und Soundeffekten über einen nachgebauten Sound Blaster. Spielbar bis ins Level, noch im Interpreter (kein Recompiler) und in Originalauflösung.
 
 ## Keine Spieldaten im Repo
 
@@ -43,7 +43,8 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | `tools/serve.py` | lokaler Webserver | ✅ |
 | `tools/browser-test.py` | automatischer Test in Headless-Chromium (Playwright) mit Tasten-Skript | ✅ |
 | `tools/build-site.py` | statische Seite nach `dist/` bauen (`--artifact` für claude.ai) | ✅ |
-| Sound | Sound-Blaster-DSP, DMA, AudioWorklet | Phase 5 |
+| `web/sb.js` | Sound Blaster (DSP 2.01) und DMA-Controller 8237, zeitgenau zur virtuellen Uhr | ✅ |
+| `web/audio-worklet.js` | Ausgabe im Browser: Ringpuffer, Umrechnung 20 kHz → Geräte-Rate, ~80 ms Latenz | ✅ |
 | `web/hires-view.js` | HD-Renderer (WebGL) | Phase 6 |
 
 ## Im Browser spielen
@@ -52,7 +53,7 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 python3 tools/serve.py
 ```
 
-Dann `http://localhost:8766/web/` öffnen und die eigene Spielkopie wählen (ZIP, einzelne Dateien oder Ordner). Die Dateien bleiben im Browser.
+Dann `http://localhost:8766/web/` öffnen und die eigene Spielkopie wählen (ZIP, einzelne Dateien oder Ordner). Die Dateien bleiben im Browser. Der Ton startet mit der Dateiauswahl, „Ton an/aus“ und der Lautstärkeregler sitzen unter dem Bild.
 
 | Taste | Funktion |
 |---|---|
@@ -75,6 +76,8 @@ node tools/run.mjs game --seconds 40 --shots 12,20,40 --out out
 | `--shots t1,t2` | zu diesen Zeitpunkten ein PNG speichern (4:3 skaliert, `--raw` für Originalgröße) |
 | `--keys t:taste` | Taste zum Zeitpunkt t drücken (`enter`, `space`, `esc`, `up`, `down`, `left`, `right`, `ctrl`, `alt` oder Scancode hex) |
 | `--verbose` | Speicheranforderungen protokollieren |
+| `--wav datei.wav` | Ton mitschneiden (44,1 kHz, mono) |
+| `--nosound` | Sound Blaster abschalten (INI mit `DRIVER=NONE`) |
 
 Ablauf im Original: Factor-5-Logo (ca. 6 s), Kellogg's-Intro (12–20 s), Titelbild (ab ca. 24 s, weiter mit Leertaste), Hinweistexte, Hauptmenü. Ins erste Level: `--keys 30:space,40:enter,50:enter,60:space,72:enter,80:enter,85:space`.
 

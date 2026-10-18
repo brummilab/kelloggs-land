@@ -22,12 +22,13 @@ time.sleep(1)
 files = [os.path.join(game, f) for f in os.listdir(game) if f.upper() in ('START.EXE', 'PCKELL.DAT', 'KELLOGG.INI', 'RTM.EXE', 'DPMI16BI.OVL')]
 try:
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path='/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None)
+        b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'], executable_path='/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None)
         page = b.new_page(viewport={'width': 1100, 'height': 1000})
         page.on('console', lambda m: print('console:', m.text))
         page.on('pageerror', lambda e: print('pageerror:', e))
         page.goto('http://127.0.0.1:8799/web/', wait_until='domcontentloaded')
         page.screenshot(path=os.path.join(out, '00_leer.png'))
+        page.click('#pick', force=True) if '--sound' in sys.argv else None
         page.set_input_files('#pick', files)
         page.click('#screen')
         for step in script.split(','):
@@ -37,12 +38,17 @@ try:
             elif kind == 'shot':
                 page.locator('#stage').screenshot(path=os.path.join(out, a[0] + '.png'))
                 print(a[0], page.inner_text('#status'), '|', page.inner_text('#mode'), '|', page.inner_text('#fps'))
+            elif kind == 'click':
+                page.click(a[0])
+            elif kind == 'eval':
+                print('eval', a[0], page.evaluate(a[0]))
             elif kind == 'page':
                 page.screenshot(path=os.path.join(out, a[0] + '.png'))
             elif kind == 'key':
                 page.keyboard.down(a[0]); time.sleep(0.15); page.keyboard.up(a[0])
             elif kind == 'hold':
                 page.keyboard.down(a[0]); time.sleep(float(a[1])); page.keyboard.up(a[0])
+        print('Ton-Knopf:', page.inner_text('#sound'))
         print(page.inner_text('#log')[-1500:])
         b.close()
 finally:

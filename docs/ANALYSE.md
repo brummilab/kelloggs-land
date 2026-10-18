@@ -44,7 +44,7 @@ Importe (nur diese müssen nachgebaut werden):
 | 2 | DOS/DPMI/KERNEL-Stubs | Spiel lädt PCKELL.DAT, Titelbild und Menü als PNG ✅ |
 | 3 | Browser-Shell | VGA-Ausgabe im Canvas, Tastatur, Spiel läuft (noch interpretiert) ✅ |
 | 4 | Recompiler | Funktionen nach JS übersetzen, Interpreter nur noch als Fallback |
-| 5 | Sound | SB-DSP, DMA, AudioWorklet |
+| 5 | Sound | SB-DSP, DMA, AudioWorklet ✅ |
 | 6 | HD | Tilemap/Sprites abgreifen, WebGL-Neuzeichnen, Breitbild, Interpolation |
 
 Der Interpreter aus Phase 1 bleibt dauerhaft drin: als Referenz für Tests (Recomp und Interpreter müssen dieselben Frames liefern) und für den selbst erzeugten Zeichencode.
@@ -70,7 +70,14 @@ Der Interpreter aus Phase 1 bleibt dauerhaft drin: als Referenz für Tests (Reco
 - **Steuerung:** Strg springt. Die Tasten müssen gehalten werden (das Spiel fragt pro Frame ab).
 - **Leistung:** Im Browser braucht der Interpreter rund 60–75 % einer Kern-Echtzeit bei 15 Mio. Befehlen/s. Der Recompiler (Phase 4) soll das deutlich senken.
 
+## Erkenntnisse aus Phase 5 (Ton)
+
+- **INI-Falle:** Das Spiel sucht in KELLOGG.INI nach `ADR=`, `DMA=`, `IRQ=` in Großbuchstaben. Mit `Adr=544` (so in der Kopie von movAX13h) findet es keine Karte und bleibt stumm. Der Emulator legt deshalb immer eine eigene INI an: `ADR=544` (220h), `DMA=1`, `IRQ=7`, `DRIVER=SB`.
+- **Treiber** in seg4 (Strings „Creative Labs SoundBlaster“, „Pro Audio Spektrum Plus Driver Version 0.05“, „PCENGINEBYNEON“). Ablauf: DSP-Reset, `D1` (Lautsprecher an), `40 CE` (Zeitkonstante → 20 000 Hz), `14 FF FF` (8-Bit-DMA, 64 KB). DMA-Kanal 1 im Auto-Init-Modus über einen Ringpuffer von 1000 Bytes. Am Ende jedes 64-KB-Blocks (alle 3,3 s) kommt IRQ 7, der Handler (seg4:0b75) startet den nächsten Block.
+- **Software-Mischer** (seg4:1a10): liest die DMA-Position (Port 02h, zweimal zur Kontrolle) und mischt ab mindestens 100 freien Proben die Stimmen nach. Daher läuft der DMA-Adresszähler im Emulator im Takt der virtuellen Zeit, und Samples werden genau dann aus dem Speicher geholt, wenn die echte Karte sie lesen würde.
+- **DMA-Puffer an 64-KB-Grenze:** Der Treiber holt DOS-Speicher, gibt ihn frei, füllt mit einem Platzhalterblock bis zur nächsten 64-KB-Grenze auf und holt dann den eigentlichen Puffer (er erwartet ihn genau bei 20000h). Das klappt nur, wenn freigegebener DOS-Speicher wiederverwendet wird. Der DOS-Speicher ist deshalb jetzt eine echte Freispeicherliste (first fit) wie bei DOS.
+- **Format:** 8 Bit unsigned, mono, 20 kHz. Rund 2 % der Proben in der Titelmusik liegen am Anschlag (8-Bit-Mischung des Originals).
+
 ## Offene Fragen
 
-- Wie spielt das Spiel Musik und Effekte? (Sound-Blaster-DSP-Befehle mitschneiden, Phase 5)
 - Wird im Level Code aus den .BOB-Dateien ausgeführt (`AllocDStoCSAlias`)?

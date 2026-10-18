@@ -6,6 +6,7 @@ import { CPU, CpuError, ES, CS, SS, DS } from './cpu.js';
 import { parseNE, applyRelocs } from './ne.js';
 import { VGA } from './vga.js';
 import { PIT, PIT_HZ } from './pit.js';
+import { DMA, SoundBlaster } from './sb.js';
 
 const MEM_SIZE = 32 << 20;
 const DOS_TOP = 0xa0000;        // konventioneller Speicher endet hier
@@ -13,7 +14,7 @@ const EXT_START = 0x110000;     // erweiterter Speicher ab 1 MB + 64 KB
 const IPS = 15_000_000;         // virtuelle Befehle pro Sekunde
 
 export class Machine {
-  constructor({ files, log = () => {}, args = '' }) {
+  constructor({ files, log = () => {}, args = '', sound = true, onSamples = null }) {
     this.files = new Map();
     for (const [k, v] of Object.entries(files)) this.files.set(k.toUpperCase(), v);
     this.log = log;
@@ -35,10 +36,14 @@ export class Machine {
     this.nextTick = 65536 / PIT_HZ; this.ticks = 0; this.port61 = 0;
     this.pit = new PIT((t) => { this.nextTick = t + this.pit.period(0); });
     this.exitCode = null;
-    this.dosNext = 0x1000;       // nächstes freies Paragraph-Segment unter 640 KB
+    this.dosFree = [{ seg: 0x1000, paras: (DOS_TOP >> 4) - 0x1000 }]; // freie Blöcke unter 640 KB
+    this.dosUsed = new Map();    // Segment -> Paragraphen
     this.extFree = [{ base: EXT_START, size: MEM_SIZE - EXT_START }];
-    this.sb = { reset: 0, out: [], cmd: null, args: [] };
     this.sbBase = 0x220;
+    this.irr = 0;                // anstehende IRQs (außer Timer/Tastatur)
+    this.sound = sound;
+    this.dma = new DMA(this.mem);
+    this.sb = new SoundBlaster({ dma: this.dma, dmaCh: 1, raiseIrq: () => { this.irr |= 0x80; }, onSamples });
     this.args = args;
   }
 
@@ -106,12 +111,35 @@ export class Machine {
     for (let i = 0; i < d.block.n; i++) this.desc[(sel >> 3) + i] = null;
     return true;
   }
+  // DOS-Speicher wie DOS selbst: first fit, Freigabe wird wiederverwendet. Der Soundtreiber
+  // verlässt sich darauf, um seinen DMA-Puffer an einer 64-KB-Grenze auszurichten.
   dosAlloc(paras) {
-    if (this.dosNext + paras > DOS_TOP >> 4) return null;
-    const seg = this.dosNext; this.dosNext += paras;
-    this.mem.fill(0, seg << 4, (seg + paras) << 4);
-    return seg;
+    paras = Math.max(1, paras);
+    for (let i = 0; i < this.dosFree.length; i++) {
+      const f = this.dosFree[i];
+      if (f.paras >= paras) {
+        const seg = f.seg; f.seg += paras; f.paras -= paras;
+        if (!f.paras) this.dosFree.splice(i, 1);
+        this.dosUsed.set(seg, paras);
+        this.mem.fill(0, seg << 4, (seg + paras) << 4);
+        return seg;
+      }
+    }
+    return null;
   }
+  dosFreeSeg(seg) {
+    const paras = this.dosUsed.get(seg);
+    if (!paras) return false;
+    this.dosUsed.delete(seg);
+    this.dosFree.push({ seg, paras });
+    this.dosFree.sort((a, b) => a.seg - b.seg);
+    for (let i = 0; i < this.dosFree.length - 1;) {
+      const a = this.dosFree[i], b = this.dosFree[i + 1];
+      if (a.seg + a.paras === b.seg) { a.paras += b.paras; this.dosFree.splice(i + 1, 1); } else i++;
+    }
+    return true;
+  }
+
 
   // ---------- Thunks (F1 id: Sprung nach JavaScript) ----------
   thunk(fn, name) {
@@ -132,6 +160,10 @@ export class Machine {
 
   // ---------- Laden ----------
   load() {
+    // Eigene KELLOGG.INI: Das Spiel sucht die Schlüssel in Großbuchstaben (ADR=, DMA=, IRQ=).
+    // Mit „Adr=544“ (so in manchen Kopien) bleibt es stumm.
+    const ini = this.sound ? '[SB]\r\nADR=544\r\nDMA=1\r\nIRQ=7\r\n\r\n[SOUND]\r\nDRIVER=SB\r\n' : '[SOUND]\r\nDRIVER=NONE\r\n';
+    this.files.set('KELLOGG.INI', Uint8Array.from(ini, (ch) => ch.charCodeAt(0)));
     const exe = this.file('START.EXE');
     if (!exe) throw new Error('START.EXE fehlt');
     const ne = this.ne = parseNE(exe);
@@ -229,9 +261,9 @@ export class Machine {
       'KERNEL.184': pas('GlobalDOSAlloc', 4, () => {
         const size = m.argD(0); const paras = (size + 15) >> 4; const seg = m.dosAlloc(paras);
         if (seg === null) { c.ax = 0; c.dx = 0; return; }
-        c.ax = m.allocSel(seg << 4, Math.min(0xffff, size - 1)); c.dx = seg;
+        c.ax = m.allocSel(seg << 4, Math.min(0xffff, size - 1)); c.dx = seg; m.d(c.ax).dosSeg = seg;
       }),
-      'KERNEL.185': pas('GlobalDOSFree', 2, () => { c.ax = 0; }),
+      'KERNEL.185': pas('GlobalDOSFree', 2, () => { const d = m.d(m.arg(0)); if (d && d.dosSeg !== undefined) { m.dosFreeSeg(d.dosSeg); m.desc[m.arg(0) >> 3] = null; } c.ax = 0; }),
       'KERNEL.171': pas('AllocDStoCSAlias', 2, () => { const d = m.d(m.arg(0)); c.ax = d ? m.allocSel(d.base, d.limit, 0xfa) : 0; }),
       'KERNEL.114': konst(8),                       // __AHINCR
       'KERNEL.113': konst(3),                       // __AHSHIFT
@@ -339,6 +371,8 @@ export class Machine {
       if (c.halted) c.icount += slice; else c.run(slice);
       const t = this.time;
       this.vga.catchUp(t);
+      this.sb.catchUp(t);
+      if (this.irr) for (let i = 2; i < 8; i++) if ((this.irr & (1 << i)) && this.raiseIrq(i)) this.irr &= ~(1 << i);
       if (t >= this.nextTick) {
         if (this.raiseIrq(0)) {
           this.nextTick += this.pit.period(0);
@@ -367,7 +401,8 @@ export class Machine {
       case 0x61: return (this.port61 & 0x0f) | (this.pit.out2(this.time) << 5);
       case 0x201: return 0xff;
     }
-    if (p >= this.sbBase && p < this.sbBase + 0x10) return this.sbIn(p - this.sbBase);
+    if (p < 0x10 || (p >= 0x80 && p < 0x90)) { this.sb.catchUp(this.time); return this.dma.in(p); }
+    if (p >= this.sbBase && p < this.sbBase + 0x10) { this.sb.catchUp(this.time); return this.sb.in(p - this.sbBase, this.time); }
     this.warnOnce('in' + p, `IN ${p.toString(16)}`);
     return 0xff;
   }
@@ -381,39 +416,14 @@ export class Machine {
       case 0x40: case 0x41: case 0x42: this.pit.write(p - 0x40, v, this.time); return;
       case 0x61: this.port61 = v; this.pit.setGate2(v & 1, this.time); return;
     }
-    if (p >= this.sbBase && p < this.sbBase + 0x10) return this.sbOut(p - this.sbBase, v);
+    if (p < 0x10 || (p >= 0x80 && p < 0x90)) { this.sb.catchUp(this.time); return this.dma.out(p, v); }
+    if (p >= this.sbBase && p < this.sbBase + 0x10) return this.sb.out(p - this.sbBase, v, this.time);
     if (p >= 0x388 && p <= 0x389) return;
     this.warnOnce('out' + p, `OUT ${p.toString(16)}, ${v.toString(16)}`);
   }
   outw(p, v) { this.outb(p, v & 0xff); this.outb(p + 1, v >> 8); }
   vgaRead(a) { return this.vga.read(a); }
   vgaWrite(a, v) { this.vga.write(a, v); }
-
-  // Minimaler Sound Blaster (DSP) – Ton folgt in Phase 5
-  sbIn(o) {
-    if (o === 0xa) return this.sb.out.length ? this.sb.out.shift() : 0xff;
-    if (o === 0xe) return this.sb.out.length ? 0xff : 0x7f;
-    if (o === 0xc) return 0x7f;
-    return 0xff;
-  }
-  sbOut(o, v) {
-    if (o === 6) { if (v === 1) this.sb.reset = 1; else if (this.sb.reset) { this.sb.reset = 0; this.sb.out = [0xaa]; } return; }
-    if (o === 0xc) {
-      this.count('SB DSP ' + v.toString(16));
-      if (this.sb.need) { this.sb.args.push(v); if (--this.sb.need === 0) this.sbCmd(); return; }
-      this.sb.cmd = v; this.sb.args = [];
-      const need = { 0x10: 1, 0x14: 2, 0x40: 1, 0x48: 2, 0x1c: 0, 0x90: 0, 0x91: 0, 0xe1: 0, 0xd1: 0, 0xd3: 0, 0xd0: 0, 0xd4: 0, 0xda: 0, 0xe0: 1, 0xf2: 0 }[v];
-      this.sb.need = need || 0;
-      if (!this.sb.need) this.sbCmd();
-    }
-  }
-  sbCmd() {
-    const s = this.sb;
-    if (s.cmd === 0xe1) s.out.push(2, 1);
-    else if (s.cmd === 0xe0) s.out.push(~s.args[0] & 0xff);
-    else if (s.cmd === 0xf2) { this.sbIrqPending = true; }
-    else if (s.cmd === 0x14 || s.cmd === 0x1c) { this.sbDmaLen = s.args.length ? (s.args[0] | (s.args[1] << 8)) + 1 : this.sbDmaLen; this.sbIrqAt = this.time + (this.sbDmaLen || 1) / 11025; }
-  }
 
   // ---------- INT 10h ----------
   int10() {
@@ -575,8 +585,9 @@ export class Machine {
         let lim = m[p] | (m[p + 1] << 8) | ((m[p + 6] & 0xf) << 16); if (m[p + 6] & 0x80) lim = ((lim << 12) | 0xfff) >>> 0;
         d.limit = lim; d.access = m[p + 5]; this.refreshSegs(); return;
       }
-      case 0x0100: { const seg = this.dosAlloc(c.bx); if (seg === null) { c.cf = 1; c.ax = 8; c.bx = 0; return; } c.ax = seg; c.dx = this.allocSel(seg << 4, Math.min(0xffff, c.bx * 16 - 1)); return; }
-      case 0x0101: case 0x0102: return;
+      case 0x0100: { const seg = this.dosAlloc(c.bx); if (seg === null) { c.cf = 1; c.ax = 8; c.bx = this.dosFree.reduce((a, f) => Math.max(a, f.paras), 0); return; } c.ax = seg; c.dx = this.allocSel(seg << 4, Math.min(0xffff, c.bx * 16 - 1)); this.d(c.dx).dosSeg = seg; return; }
+      case 0x0101: { const d = this.d(c.dx); if (d && d.dosSeg !== undefined) { this.dosFreeSeg(d.dosSeg); this.desc[c.dx >> 3] = null; } return; }
+      case 0x0102: return;
       case 0x0200: { const v = this.rmVec[c.bl]; c.cx = v ? v.seg : 0xf000; c.dx = v ? v.off : 0; return; }
       case 0x0201: this.rmVec[c.bl] = { seg: c.cx, off: c.dx }; return;
       case 0x0202: { const v = this.excVec[c.bl] || this.defaultThunk(0); c.cx = v.sel; c.dx = v.off; return; }

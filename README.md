@@ -44,6 +44,7 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | Browser-Version: Spielkopie laden (ZIP, Dateien oder Ordner), Maschine im Web Worker, Canvas 4:3, Tastatur, Highscores im Browser | ✅ |
 | `tools/serve.py` | lokaler Webserver | ✅ |
 | `tools/browser-test.py` | automatischer Test in Headless-Chromium (Playwright) mit Tasten-Skript | ✅ |
+| `tools/ghidra/ExportKellogg.java`, `tools/trace-draw.mjs`, `tools/dump-scene.mjs`, `docs/map.json` | Reverse Engineering mit Ghidra: Funktionskarte, Zeichenroutinen, Szenendaten, siehe [docs/GRAFIK.md](docs/GRAFIK.md) | ✅ |
 | `tools/build-site.py` | statische Seite nach `dist/` bauen (`--artifact` für claude.ai) | ✅ |
 | `web/sb.js` | Sound Blaster (DSP 2.01) und DMA-Controller 8237, zeitgenau zur virtuellen Uhr | ✅ |
 | `web/audio-worklet.js` | Ausgabe im Browser: Ringpuffer, Umrechnung 20 kHz → Geräte-Rate, ~80 ms Latenz | ✅ |

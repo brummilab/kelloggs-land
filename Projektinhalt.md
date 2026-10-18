@@ -15,7 +15,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - Phase 1+2 erledigt (18.10.2026): NE-Loader, x86-Interpreter (inkl. 386), emulierter PC (DOS, DPMI, KERNEL/RTM, PIT, PIC, Tastatur, VGA). Das Spiel läuft in Node bis ins Hauptmenü, Tasten funktionieren.
 - Phase 3 erledigt (18.10.2026): Browser-Version, spielbar bis ins erste Level. Zeilengenaue VGA (Statusleiste per Line Compare, Palettenwechsel per PEL-Maske). Veröffentlicht als privates Artifact „Kellogg's Land HD“ (claude.ai), dort mit eigener Spielkopie spielbar.
 - Phase 5 erledigt (18.10.2026): Ton über nachgebauten Sound Blaster + DMA, Ausgabe per AudioWorklet. Artifact aktualisiert (Version 2).
-- Nächster Schritt: Phase 4 Recompiler (Leistung) oder Phase 6 HD-Renderer.
+- Nächster Schritt: HD-Renderer (Phase 6) auf Basis der Szenendaten; Antwort von mr-finster abwarten (Issue #19).
 
 ## Quellen
 - Spielbare Seite (privat): https://claude.ai/artifact/XAsjYuLRbLjyDng1jo8pXL
@@ -24,6 +24,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Reverse Engineering der Grafik: REA (morluto/rea) installiert, kann NE nicht laden → Ghidra 11.3.1 headless direkt. Zeichenpipeline, Kamera, Level-Karte, Kachelformat, Sprite-Liste und kompilierte BOB-Sprites gefunden (docs/GRAFIK.md, docs/map.json). Grundlage für den HD-Renderer.
 - 18.10.2026: Issue #19 bei mr-finster/stunts-hd erstellt (Anfrage zur Zusammenarbeit): https://github.com/mr-finster/stunts-hd/issues/19
 - 18.10.2026: Davids Test: läuft mit 61–63 fps bei 66–69 % CPU. Knacksen am Anfang und zwischen Szenen behoben (Spiel löscht Puffer mit 00h). Frage an mr-finster (Stunts HD) zur Zusammenarbeit vorbereitet.
 - 18.10.2026: Davids ZIP (deutsche DOS-Version, START.EXE 147 200 Bytes, neuer als die Entwicklungskopie) getestet: läuft im Emulator und über die Webseite inkl. Ton bis ins Level. Tastenbelegung laut READ.ME korrigiert (Leertaste/↑ springen, Alt Sonderfunktion, P Pause, Esc Karte).

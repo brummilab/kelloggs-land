@@ -68,6 +68,18 @@ Sprites sind kompilierter Code (die .BOB-Daten): Jedes Bild ist ein kleines x86-
 
 Beispiel aus `tools/dump-scene.mjs`, Level 1 beim Loslaufen: Kamera (128, 502), Sprites `3a8@(192,592) 32×48` und Tony `0@(288,640) 32×56`; nach 1,5 s nach rechts Kamera (220, 502), Tony `1@(410,640)`.
 
+## Breitbild-Prototyp (`web/scene.js`)
+
+Umgesetzt und im Browser schaltbar („Breitbild“):
+
+- **Szene pro Bild**: Haltepunkt am Anfang von `draw_sprite_list` (seg3:b073) liest Kamera (`c1c8`/`c1cc`) und Sprite-Liste.
+- **Kacheln**: Karte über far `b588` (Eintrag `& 0x1FF`), Grafikindex aus der **far-Tabelle `b590`** (4 Bytes je Kachel, Selektor in `b592`), Kachelbytes ab **far `b594`** (Selektor = das GS der Zeichenroutine), Offset `index·256` **mit 32 Bit** (Kacheln über Index 255 liegen jenseits von 64 KB: Wolken, Baumstamm).
+- **Sprites**: Haltepunkt bei `draw_sprite` (seg3:0002; Stack: `flags` bei SP+4, `frame` +6, `y` +8, `x` +10). Solange der kompilierte Sprite-Code läuft, werden seine VGA-Schreibzugriffe in Sprite-Koordinaten umgerechnet (Ring: Basis `c1d4`, Zeilenbreite `c1d0`, Ringgröße `c1da`, Scroll `c1b0`/`c1b4`) und je Bildnummer als Indexbild gecacht. Nur vollständig sichtbare Sprites werden mitgeschnitten; fehlt ein Bild noch, kommt sein Rahmen aus dem Originalbild.
+- **Paletten-Trick**: die PEL-Maske je Bildzeile (`vga.rowMask`) wird auch im Breitbild pro Zeile angewendet.
+- **Statusleiste**: aus dem Originalbild, mittig.
+- **Breite**: 320 + 2·53 = 426 Spielpixel, auf 16:9 skaliert (die Pixel sind wie im Original höher als breit).
+- **Prüfung** (`node tools/hd-test.mjs <spiel> <out>`): Im Stand ist die Mitte des Breitbilds **pixelgleich** mit dem Originalbild (0,00 % Abweichung); beim Laufen liegt der Neuaufbau ein Bild vor dem zuletzt angezeigten Original. Komposition ≈ 2 ms je Bild.
+
 ## Was das für HD bedeutet
 
 Pro Bild kann der Emulator vor `draw_sprite_list` eine **Szenenbeschreibung** auslesen: Kamera, Level-Karte, Kachelgrafik und Sprite-Liste mit Bildnummern. Ein WebGL-Renderer kann daraus
@@ -77,4 +89,4 @@ Pro Bild kann der Emulator vor `draw_sprite_list` eine **Szenenbeschreibung** au
 - zwischen zwei Spielbildern interpolieren,
 - jede Kachel und jedes Sprite durch eine hochauflösende Fassung ersetzen (HD-Paket, lokal aus der eigenen PCKELL.DAT erzeugt, z. B. mit Real-ESRGAN).
 
-Offen: Palettenwechsel mitten im Bild (PEL-Maske, Wasser) für HD nachbilden, Statusleiste, Effekt-Flags, Vordergrund-Kacheln (Sprites hinter Kacheln?).
+Offen: Effekt-Flags (Aufblitzen `0x100`), Vordergrund-Kacheln (Sprites hinter Kacheln?), weitere Level und Figuren prüfen, Interpolation zwischen Bildern, HD-Grafikpaket.

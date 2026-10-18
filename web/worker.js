@@ -1,9 +1,11 @@
 // Web Worker: führt die Maschine aus, schickt Bilder an die Seite, nimmt Tasten entgegen.
 
 import { Machine } from './machine.js';
+import { sceneFor } from './scene.js';
 
 let m = null, last = 0, paused = false, speed = 1, lastFrame = -1;
 let audioOn = false, audioChunks = [], audioRate = 20000;
+let scene = null, wide = false;
 
 function onSamples(buf, rate) {
   if (!audioOn) return;
@@ -35,7 +37,8 @@ function tick() {
   const busy = performance.now() - t0;
   if (m.vga.frames === lastFrame && m.vga.last) return; // kein neues Bild seit dem letzten Tick
   lastFrame = m.vga.frames;
-  const f = m.frame();
+  // Breitbild, wenn eingeschaltet und gerade ein Level läuft; sonst das Originalbild
+  const f = (wide && scene && scene.compose()) || m.frame();
   postMessage({ type: 'frame', w: f.width, h: f.height, buf: f.rgba.buffer, mode: m.vga.mode, t: m.time, load: busy / (dt * 1000 || 1) }, [f.rgba.buffer]);
   if (m.exitCode !== null) { postMessage({ type: 'exit', code: m.exitCode }); m = null; }
 }
@@ -48,6 +51,8 @@ onmessage = (e) => {
       const hs = msg.hiscore; if (hs) m.files.set('HISCORE.DAT', hs);
       m.load();
     } catch (err) { postMessage({ type: 'error', text: err.message }); m = null; return; }
+    scene = sceneFor(m);
+    postMessage({ type: 'wide-support', on: !!scene, name: scene ? scene.p.name : null });
     // Highscores beim Schreiben an die Seite melden (zum Speichern im Browser)
     const close = m.int21.bind(m);
     m.int21 = () => {
@@ -64,6 +69,8 @@ onmessage = (e) => {
     paused = msg.on; last = performance.now();
   } else if (msg.type === 'audio') {
     audioOn = msg.on; audioChunks = [];
+  } else if (msg.type === 'wide') {
+    wide = msg.on; lastFrame = -1;
   } else if (msg.type === 'speed') {
     speed = msg.value;
   }

@@ -16,7 +16,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - Phase 1+2 erledigt (18.10.2026): NE-Loader, x86-Interpreter (inkl. 386), emulierter PC (DOS, DPMI, KERNEL/RTM, PIT, PIC, Tastatur, VGA). Das Spiel läuft in Node bis ins Hauptmenü, Tasten funktionieren.
 - Phase 3 erledigt (18.10.2026): Browser-Version, spielbar bis ins erste Level. Zeilengenaue VGA (Statusleiste per Line Compare, Palettenwechsel per PEL-Maske). Veröffentlicht als privates Artifact „Kellogg's Land HD“ (claude.ai), dort mit eigener Spielkopie spielbar.
 - Phase 5 erledigt (18.10.2026): Ton über nachgebauten Sound Blaster + DMA, Ausgabe per AudioWorklet. Artifact aktualisiert (Version 2).
-- Nächster Schritt: HD-Renderer (Phase 6) auf Basis der Szenendaten; Antwort von mr-finster abwarten (Issue #19).
+- Nächster Schritt: Breitbild ausbauen (weitere Level prüfen, Interpolation, WebGL/HD-Grafik) oder Recompiler (docs/RECOMPILER.md).
 
 ## Quellen
 - Spielbare Seite (privat): https://claude.ai/artifact/XAsjYuLRbLjyDng1jo8pXL
@@ -25,6 +25,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Breitbild-Prototyp fertig: Level in 16:9 aus Karte/Kacheln/Sprites neu aufgebaut, Mitte im Stand pixelgleich mit dem Original, ~2 ms/Bild. Im Browser per „Breitbild“-Knopf (nur deutsche Version 147 200 Bytes). Artifact aktualisiert.
 - 18.10.2026: mr-finster antwortet (Issue #19): nimmt Kellogg's Land nicht in Stunts HD auf, erlaubt aber Nutzung von translate.js & Co. (MIT, mit Nennung). Übersetzer analysiert → docs/RECOMPILER.md: Muster übertragbar, Dekoder/Speichermodell nicht (386, Protected Mode). Vorschlag: blockweise Übersetzung zur Laufzeit.
 - 18.10.2026: Reverse Engineering der Grafik: REA (morluto/rea) installiert, kann NE nicht laden → Ghidra 11.3.1 headless direkt. Zeichenpipeline, Kamera, Level-Karte, Kachelformat, Sprite-Liste und kompilierte BOB-Sprites gefunden (docs/GRAFIK.md, docs/map.json). Grundlage für den HD-Renderer.
 - 18.10.2026: Issue #19 bei mr-finster/stunts-hd erstellt (Anfrage zur Zusammenarbeit): https://github.com/mr-finster/stunts-hd/issues/19

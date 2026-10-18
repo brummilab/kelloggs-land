@@ -47,3 +47,13 @@ for (const [dt, name] of shots) {
   png(path.join(out, `orig_${name}.png`), orig);
 }
 m.keyUp(0x4d);
+// Im Stand nach dem Einblenden: Mitte muss pixelgleich sein
+m.run(1.5);
+{
+  const t0 = performance.now(); let hd; for (let i = 0; i < 20; i++) hd = sc.compose(); const ms = (performance.now() - t0) / 20;
+  const orig = m.vga.last, o32 = new Uint32Array(orig.rgba.buffer), h32 = new Uint32Array(hd.rgba.buffer), ex = (hd.width - 320) / 2;
+  let diff = 0, total = 0;
+  for (let y = 0; y < hd.playRows; y++) for (let x = 0; x < 320; x++) { total++; if (o32[y * 320 + x] !== h32[y * hd.width + x + ex]) diff++; }
+  console.log(`ruhig: Kamera (${sc.frame.camX},${sc.frame.camY}), Abweichung Mitte ${(diff / total * 100).toFixed(2)} %, Komposition ${ms.toFixed(2)} ms/Bild`);
+  png(path.join(out, 'hd_ruhig.png'), hd); png(path.join(out, 'orig_ruhig.png'), orig);
+}

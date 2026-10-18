@@ -6,7 +6,7 @@ Static Recompilation von **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser
 
 Die originale `START.EXE` wird Befehl für Befehl nach JavaScript übersetzt und auf einem kleinen emulierten PC ausgeführt. Ein WebGL-Renderer zeichnet das Bild danach neu, in HD, Breitbild und ohne Ruckeln. Weil der echte Spielcode läuft, verhalten sich Steuerung, Gegner und Level genau wie im Original.
 
-> **Status:** Phase 5 (Ton) erledigt. Das Spiel läuft im Browser mit Musik und Soundeffekten über einen nachgebauten Sound Blaster. Spielbar bis ins Level, noch im Interpreter (kein Recompiler) und in Originalauflösung.
+> **Status:** Spielbar im Browser mit Ton. Neu: **Breitbild 16:9** (Level aus Karte, Kacheln und Sprites neu aufgebaut, bisher für die deutsche Version mit START.EXE 147 200 Bytes). Noch Interpreter, noch Originalauflösung der Grafiken.
 
 ## Keine Spieldaten im Repo
 
@@ -48,7 +48,8 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | `tools/build-site.py` | statische Seite nach `dist/` bauen (`--artifact` für claude.ai) | ✅ |
 | `web/sb.js` | Sound Blaster (DSP 2.01) und DMA-Controller 8237, zeitgenau zur virtuellen Uhr | ✅ |
 | `web/audio-worklet.js` | Ausgabe im Browser: Ringpuffer, Umrechnung 20 kHz → Geräte-Rate, ~80 ms Latenz | ✅ |
-| `web/hires-view.js` | HD-Renderer (WebGL) | Phase 6 |
+| `web/scene.js`, `tools/hd-test.mjs` | Breitbild: Szene pro Bild aus dem Speicher, Kacheln aus der Level-Karte, Sprites aus dem kompilierten Code mitgeschnitten, Vergleich gegen das Original | ✅ (Prototyp) |
+| HD-Grafik | WebGL-Renderer, Interpolation, hochauflösende Kacheln/Sprites | Phase 6 |
 
 ## Im Browser spielen
 
@@ -67,6 +68,8 @@ Dann `http://localhost:8766/web/` öffnen und die eigene Spielkopie wählen (ZIP
 | P | Pause |
 | Esc | zurück zur Karte, ohne ein Leben zu verlieren |
 | Enter | Menü bestätigen (Start ist vorausgewählt), Titelbild mit Leertaste weiter |
+
+Unter dem Bild: „Breitbild“ schaltet auf 16:9 um (gilt im Level; Menüs mittig mit schwarzen Rändern).
 
 ## Ohne Browser testen
 

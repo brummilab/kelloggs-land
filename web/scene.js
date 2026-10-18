@@ -124,18 +124,27 @@ export class Scene {
     return table === null ? 0 : c.rw(table + id * stride);
   }
 
+  // Sprite noch nicht im Cache: seinen Rahmen aus dem Originalbild übernehmen (nur innerhalb der 320 Pixel)
+  cutout(out, W, extra, rows, s, orig) {
+    const d = this.frameDesc(s.frame); if (!d) return;
+    const sx = s.x - this.frame.camX - d.hx, sy = s.y - this.frame.camY - d.hy;
+    const o32 = new Uint32Array(orig.rgba.buffer, orig.rgba.byteOffset, orig.width * orig.height);
+    for (let y = Math.max(0, sy); y < Math.min(rows, sy + d.h); y++)
+      for (let x = Math.max(0, sx); x < Math.min(320, sx + d.w); x++) out[y * W + x + extra] = o32[y * 320 + x];
+  }
+
   // Breitbild zusammensetzen. extra = zusätzliche Spielpixel links und rechts.
   compose(extra = 53) {
     const f = this.frame, m = this.m, vga = m.vga;
     const orig = vga.last || vga.render();
-    if (!f || !this.tileSel || orig.width !== 320) return null;
+    if (!f || orig.width !== 320) return null;
     const V = this.p.v, c = this.cpu;
     const W = 320 + 2 * extra, H = orig.height, rows = Math.min(this.w(V.playRows) || 176, H);
     const out = new Uint32Array(W * H);
     const pal = vga.palette32();
     const mapBase = this.far(V.map), rowBytes = this.w(V.mapRow);
-    const gs = m.selBase(this.tileSel), tileBase = this.w(V.tileBase); // Kachelgrafik: far-Zeiger b594 (Selektor = GS)
-    if (mapBase === null || gs === undefined || !rowBytes) return null;
+    const gs = this.far(V.tileBase), tileBase = 0; // Kachelgrafik: far-Zeiger b594 (Selektor wie GS beim Zeichnen)
+    if (mapBase === null || gs === null || !rowBytes) return null;
     const mapCols = rowBytes >> 1;
     const gfxCache = new Map();
     // Kacheln
@@ -149,7 +158,7 @@ export class Scene {
           const id = c.rw(mapBase + ty * rowBytes + (wx >> 4) * 2) & 0x1ff;
           let g = gfxCache.get(id); if (g === undefined) { g = this.tileGfx(id); gfxCache.set(id, g); }
           const ix = wx & 15;
-          const off = ((tileBase + g * 0x100) & 0xffff) + ((ix & 3) << 2 | ix >> 2) + iy * 16;
+          const off = tileBase + g * 0x100 + ((ix & 3) << 2 | ix >> 2) + iy * 16;
           ci = m.mem[gs + off];
         }
         out[y * W + x] = pal[ci & mask];
@@ -158,7 +167,8 @@ export class Scene {
     // Sprites (aus dem Mitschnitt), in Listenreihenfolge
     for (const s of f.sprites) {
       if ((s.frame & 0xb000) || (s.flags & 0xff)) continue;
-      const img = this.sprites.get(s.frame & 0x0fff); if (!img) continue;
+      const img = this.sprites.get(s.frame & 0x0fff);
+      if (!img) { this.cutout(out, W, extra, rows, s, orig); continue; }
       const x0 = s.x - f.camX - img.hx + extra, y0 = s.y - f.camY - img.hy;
       for (let y = 0; y < img.h; y++) {
         const yy = y0 + y; if (yy < 0 || yy >= rows) continue;

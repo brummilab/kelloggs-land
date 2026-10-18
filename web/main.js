@@ -7,6 +7,17 @@ const canvas = $('screen'), ctx = canvas.getContext('2d');
 const off = document.createElement('canvas'), offCtx = off.getContext('2d');
 let worker = null, started = false;
 let audio = null, audioNode = null, soundOn = false;
+// Breitbild 16:9: neu aufgebautes Level (Kacheln + Sprites aus dem Speicher des Spiels)
+let wideOn = false;
+try { wideOn = localStorage.getItem('kelloggs-wide') === '1'; } catch {}
+function setWide(on) {
+  wideOn = on;
+  canvas.width = on ? 1280 : 640; canvas.height = on ? 720 : 480;
+  document.getElementById('stage').classList.toggle('wide', on);
+  const b = document.getElementById('wide'); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Breitbild an' : 'Breitbild';
+  try { localStorage.setItem('kelloggs-wide', on ? '1' : '0'); } catch {}
+  if (worker) worker.postMessage({ type: 'wide', on });
+}
 // Zustand für Tests und Fehlersuche (Konsole: kelloggs)
 const debug = { audioSamples: 0, audioRate: 0, get audioState() { return audio ? audio.state : 'aus'; } };
 window.kelloggs = debug;
@@ -88,7 +99,12 @@ function onWorker(e) {
     if (off.width !== m.w || off.height !== m.h) { off.width = m.w; off.height = m.h; }
     offCtx.putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+    if (wideOn && m.w <= 360) {
+      // Originalbild (4:3) im Breitbild-Rahmen mittig, links und rechts schwarz
+      const w43 = Math.round(canvas.height * 4 / 3), x0 = (canvas.width - w43) >> 1;
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, x0, canvas.height); ctx.fillRect(x0 + w43, 0, canvas.width - x0 - w43, canvas.height);
+      ctx.drawImage(off, x0, 0, w43, canvas.height);
+    } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
     frames++; loadAvg = loadAvg * 0.95 + m.load * 0.05;
     const now = performance.now();
     if (now - lastFps > 1000) {
@@ -96,6 +112,12 @@ function onWorker(e) {
       $('fps').textContent = `${Math.round(frames * 1000 / (now - lastFps))} fps · CPU ${Math.round(loadAvg * 100)} %`;
       frames = 0; lastFps = now;
     }
+  } else if (m.type === 'wide-support') {
+    const btn = $('wide');
+    btn.disabled = !m.on;
+    btn.title = m.on ? `Breitbild 16:9 für die ${m.name}` : 'Breitbild gibt es bisher nur für die deutsche Version (START.EXE mit 147 200 Bytes)';
+    if (m.on && wideOn) worker.postMessage({ type: 'wide', on: true });
+    else if (!m.on) setWide(false);
   } else if (m.type === 'audio') {
     debug.audioSamples += m.samples.length; debug.audioRate = m.rate;
     if (audioNode && soundOn) audioNode.port.postMessage({ samples: m.samples, rate: m.rate }, [m.samples.buffer]);
@@ -134,6 +156,8 @@ const drop = $('drop');
 ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, () => { delete drop.dataset.over; }));
 drop.addEventListener('drop', (e) => { e.preventDefault(); start(e.dataTransfer.files); });
 
+$('wide').addEventListener('click', () => { setWide(!wideOn); canvas.focus(); });
+setWide(wideOn);
 $('full').addEventListener('click', async () => {
   try { await $('stage').requestFullscreen(); } catch { setStatus('Vollbild ist hier nicht verfügbar.'); }
   canvas.focus();

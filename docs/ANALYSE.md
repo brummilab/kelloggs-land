@@ -42,7 +42,7 @@ Importe (nur diese müssen nachgebaut werden):
 | 0 | Analyse | `neinfo.py`, dieses Dokument ✅ |
 | 1 | NE-Loader + Interpreter | START.EXE läuft im Interpreter (Node) ✅ |
 | 2 | DOS/DPMI/KERNEL-Stubs | Spiel lädt PCKELL.DAT, Titelbild und Menü als PNG ✅ |
-| 3 | Browser-Shell | VGA-Ausgabe im Canvas, Tastatur, Spiel läuft (noch interpretiert) |
+| 3 | Browser-Shell | VGA-Ausgabe im Canvas, Tastatur, Spiel läuft (noch interpretiert) ✅ |
 | 4 | Recompiler | Funktionen nach JS übersetzen, Interpreter nur noch als Fallback |
 | 5 | Sound | SB-DSP, DMA, AudioWorklet |
 | 6 | HD | Tilemap/Sprites abgreifen, WebGL-Neuzeichnen, Breitbild, Interpolation |
@@ -61,8 +61,16 @@ Der Interpreter aus Phase 1 bleibt dauerhaft drin: als Referenz für Tests (Reco
 - **Tastatur:** Das Menü fragt den Tastenzustand pro Frame ab. Ein Druck muss rund 150 ms gehalten werden.
 - **Dateien:** PCKELL.DAT (≈ 13 000 Lesezugriffe beim Start), KELLOGG.INI, HISCORE.DAT (fehlt beim ersten Start, das ist normal).
 
+## Erkenntnisse aus Phase 3
+
+- **Level-Grafik:** Mode 13h, 320×200, Zeilenbreite 84 Bytes (336 Pixel) für weiches Scrollen über Startadresse und Pixel-Panning.
+- **Statusleiste:** per Line Compare (Zeile 351 von 400 → Bildzeile 176). Ab dort beginnt die Anzeige wieder bei Adresse 0, dort liegt die Leiste (24 Zeilen).
+- **Zwei Paletten in einem Bild:** Der Timer-Interrupt setzt die PEL-Maske (Port 3C6h) einmal pro Bild auf 7Fh und auf FFh. Damit nutzt ein Teil des Bildes die Farben 0–127, der andere 128–255 (Wasser, Hintergrund).
+- **Deshalb zeichnet die VGA jetzt zeilengenau:** Vor jedem VGA-Portzugriff und nach jeder Zeitscheibe (≤ 1500 Befehle ≈ 3 Zeilen) werden alle Zeilen bis zur aktuellen Strahlposition gezeichnet. Fertige Bilder gehen an die Anzeige.
+- **Steuerung:** Strg springt. Die Tasten müssen gehalten werden (das Spiel fragt pro Frame ab).
+- **Leistung:** Im Browser braucht der Interpreter rund 60–75 % einer Kern-Echtzeit bei 15 Mio. Befehlen/s. Der Recompiler (Phase 4) soll das deutlich senken.
+
 ## Offene Fragen
 
 - Wie spielt das Spiel Musik und Effekte? (Sound-Blaster-DSP-Befehle mitschneiden, Phase 5)
 - Wird im Level Code aus den .BOB-Dateien ausgeführt (`AllocDStoCSAlias`)?
-- Welcher Grafikmodus im Level selbst?

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kellogg's Land HD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: eine Spalte, das Spielbild steckt im rot-goldenen Rahmen der Menüs aus dem Original. */
+  :root {
+    --navy: #0c1c66;      /* Hintergrund der Original-Menüs */
+    --navy-deep: #07113f;
+    --red: #d3171c;       /* Rahmen */
+    --gold: #f5c518;      /* Rahmenkante, Akzent */
+    --paper: #f6f6f2;     /* Menüfläche */
+    --ink: #e9ecff;       /* Text auf Navy */
+    --muted: #a9b2e6;
+    --err: #ff8a7a;
+    --f-display: 'Lilita One', 'Arial Black', Impact, sans-serif;
+    --f-body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+    --f-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+  html, body { background: var(--navy); color: var(--ink); }
+  body {
+    font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 40px;
+    background:
+      radial-gradient(ellipse at 50% -10%, #1a2f95 0%, transparent 60%),
+      var(--navy);
+    min-height: 100%;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; display: grid; gap: 18px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  h1 {
+    font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.5vw, 48px); line-height: 1;
+    margin: 0; color: var(--gold); letter-spacing: 0.01em; text-wrap: balance;
+    text-shadow: 0 3px 0 var(--red), 0 5px 0 var(--navy-deep);
+  }
+  .tag { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* Der Rahmen: rot mit goldener Kante, wie die Menütafeln im Spiel */
+  .frame {
+    background: var(--red); border: 4px solid var(--gold); border-radius: 26px; padding: clamp(8px, 2vw, 16px);
+    box-shadow: 0 0 0 4px var(--navy-deep), 0 18px 40px rgba(0, 0, 0, .45);
+  }
+  #stage { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; max-width: 100%; }
+  #stage:fullscreen { border-radius: 0; display: grid; place-items: center; }
+  #stage:fullscreen canvas { width: auto; height: 100%; max-width: 100%; }
+  canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; outline: none; }
+
+  #drop {
+    position: absolute; inset: 0; display: grid; place-content: center; gap: 16px; text-align: center; padding: 24px;
+    background: var(--paper); color: var(--navy-deep);
+  }
+  #drop[data-over] { background: #fff6cf; }
+  #drop h2 { font-family: var(--f-display); font-weight: 400; font-size: clamp(22px, 4vw, 34px); color: var(--red); margin: 0; line-height: 1.1; text-wrap: balance; }
+  #drop p { margin: 0 auto; max-width: 46ch; font-size: 14px; }
+  .files { font-family: var(--f-mono); font-size: 12.5px; color: #3b4a8f; }
+  .buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    font: 700 15px/1 var(--f-body); padding: 12px 18px; border-radius: 999px; cursor: pointer;
+    background: var(--red); color: #fff; border: 3px solid var(--gold); display: inline-flex; align-items: center;
+  }
+  .btn.secondary { background: var(--navy); }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:focus-within, .btn:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  body[data-state="running"] #drop { display: none; }
+
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar .grow { flex: 1; }
+  .bar button, .bar select {
+    font: 600 12.5px var(--f-mono); color: var(--ink); background: var(--navy-deep); border: 1px solid #2c3d9a; border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  }
+  #status { margin: 0; font-size: 14px; color: var(--ink); min-height: 1.5em; }
+  #status[data-kind="error"] { color: var(--err); }
+
+  .help { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 28px; }
+  .help h3 { font: 700 12px var(--f-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); margin: 0 0 6px; }
+  .help p, .help dl { margin: 0; font-size: 14px; color: var(--muted); max-width: 60ch; }
+  .help dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
+  .help dt { color: var(--ink); font-family: var(--f-mono); font-size: 13px; }
+  kbd { font-family: var(--f-mono); font-size: 12px; background: var(--navy-deep); border: 1px solid #2c3d9a; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--ink); }
+
+  details { border-top: 1px solid #22348c; padding-top: 10px; }
+  summary { cursor: pointer; font: 600 12.5px var(--f-mono); color: var(--muted); }
+  #log { font: 12px/1.5 var(--f-mono); color: var(--muted); background: var(--navy-deep); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
+  footer { font-size: 12.5px; color: var(--muted); max-width: 75ch; }
+  footer a { color: var(--gold); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Kellogg's Land HD</h1>
+    <span class="tag">Recomp · Interpreter · ohne Ton</span>
+  </header>
+
+  <div class="frame">
+    <div id="stage">
+      <canvas id="screen" width="640" height="480" tabindex="0" aria-label="Spielbild"></canvas>
+      <div id="drop">
+        <h2>Tony &amp; Friends in Kellogg's Land</h2>
+        <p>Wähle deine eigene Kopie des Spiels (DOS, 1994). Die Dateien werden nur hier im Browser gelesen und nirgends hochgeladen.</p>
+        <div class="buttons">
+          <label class="btn">ZIP oder Dateien wählen<input id="pick" type="file" multiple accept=".zip,.exe,.dat,.ini,.ovl"></label>
+          <label class="btn secondary">Spielordner wählen<input id="pickdir" type="file" webkitdirectory multiple></label>
+        </div>
+        <p class="files">Nötig: START.EXE · PCKELL.DAT &nbsp;·&nbsp; oder einfach hierher ziehen</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <p id="status">Bereit. Noch kein Spiel geladen.</p>
+    <span class="grow"></span>
+    <span id="mode">–</span>
+    <span id="fps">–</span>
+    <label for="speed">Tempo</label>
+    <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+    <button id="full" type="button">Vollbild</button>
+  </div>
+
+  <section class="help">
+    <div>
+      <h3>Steuerung</h3>
+      <dl>
+        <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>laufen</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Menü, ducken</dd>
+        <dt><kbd>Strg</kbd></dt><dd>springen</dd>
+        <dt><kbd>Alt</kbd></dt><dd>Fähigkeit der Figur</dd>
+        <dt><kbd>Leertaste</kbd> <kbd>Enter</kbd></dt><dd>Titelbild und Menü weiter</dd>
+        <dt><kbd>Esc</kbd></dt><dd>zurück</dd>
+      </dl>
+    </div>
+    <div>
+      <h3>Was hier läuft</h3>
+      <p>Der originale Code aus START.EXE, Befehl für Befehl in einem x86-Interpreter auf einem nachgebauten PC mit VGA, Timer und Tastatur. Ton fehlt noch, die HD-Darstellung kommt später. Auf dem Titelbild geht es mit der Leertaste weiter, im Menü ist Start schon ausgewählt.</p>
+    </div>
+  </section>
+
+  <details id="logbox">
+    <summary>Protokoll</summary>
+    <pre id="log"></pre>
+  </details>
+
+  <footer>
+    Fan-Projekt ohne Verbindung zu Kellogg's, Factor 5 oder Rauser Advertainment. Das Spiel und seine Figuren gehören ihren Rechteinhabern. Vorbild: <a href="https://github.com/mr-finster/stunts-hd">Stunts HD</a>.
+  </footer>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

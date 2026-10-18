@@ -335,9 +335,10 @@ export class Machine {
     const end = this.time + seconds;
     while (this.time < end && this.exitCode === null) {
       // bis zum nächsten Timer-Ereignis laufen (genau genug für Raster-Timing)
-      const slice = Math.max(1, Math.min(2000, Math.ceil((this.nextTick - this.time) * IPS)));
+      const slice = Math.max(1, Math.min(1500, Math.ceil((this.nextTick - this.time) * IPS)));
       if (c.halted) c.icount += slice; else c.run(slice);
       const t = this.time;
+      this.vga.catchUp(t);
       if (t >= this.nextTick) {
         if (this.raiseIrq(0)) {
           this.nextTick += this.pit.period(0);
@@ -371,7 +372,7 @@ export class Machine {
     return 0xff;
   }
   outb(p, v) {
-    if (p >= 0x3b0 && p <= 0x3df) return this.vga.outb(p, v);
+    if (p >= 0x3b0 && p <= 0x3df) { this.vga.catchUp(this.time); return this.vga.outb(p, v); }
     switch (p) {
       case 0x20: if (v === 0x20) this.eoi(); return;
       case 0x21: this.picMask = v; return;
@@ -630,7 +631,7 @@ export class Machine {
   }
 
   // Bild als RGBA
-  frame() { return this.vga.render(); }
+  frame() { const f = this.vga.render(); return { width: f.width, height: f.height, rgba: f.rgba.slice() }; }
 }
 
 // Scancode -> ASCII (nur das Nötigste für INT 16h)

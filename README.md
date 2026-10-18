@@ -2,7 +2,7 @@
 
 # Kellogg's Land HD
 
-Static Recompilation von **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advertainment, DOS 1994) für den Browser, nach dem Vorbild von [Stunts HD](https://github.com/mr-finster/stunts-hd).
+Static Recompilation von **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advertainment, DOS 1994) für den Browser.
 
 Die originale `START.EXE` wird Befehl für Befehl nach JavaScript übersetzt und auf einem kleinen emulierten PC ausgeführt. Ein WebGL-Renderer zeichnet das Bild danach neu, in HD, Breitbild und ohne Ruckeln. Weil der echte Spielcode läuft, verhalten sich Steuerung, Gegner und Level genau wie im Original.
 
@@ -40,7 +40,7 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | `web/pit.js` | Timer-Chip (Kanal 0 und 2, Latch, Gate über Port 61h) | ✅ |
 | `web/vga.js` | VGA mit 4 Planes, Schreibmodi 0–3, Mode 13h / 12h / Mode X, DAC; zeichnet zeilengenau zum Strahl (Line Compare, PEL-Maske, Panning) | ✅ |
 | `tools/run.mjs` | startet das Spiel ohne Browser, simuliert Tasten, speichert PNGs | ✅ |
-| `web/translate.js` | übersetzt Funktionen nach JavaScript (Recompiler) | Phase 4 |
+| `web/translate.js` | übersetzt Funktionen nach JavaScript (Recompiler), Plan: [docs/RECOMPILER.md](docs/RECOMPILER.md) | Phase 4 |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | Browser-Version: Spielkopie laden (ZIP, Dateien oder Ordner), Maschine im Web Worker, Canvas 4:3, Tastatur, Highscores im Browser | ✅ |
 | `tools/serve.py` | lokaler Webserver | ✅ |
 | `tools/browser-test.py` | automatischer Test in Headless-Chromium (Playwright) mit Tasten-Skript | ✅ |
@@ -102,9 +102,6 @@ Browser-Test: `python3 tools/browser-test.py game out "wait:30,key:Space,wait:5,
 `assets/logo.png` (Icon) und `assets/banner.png` sind eigene Pixel-Grafiken, erzeugt mit `python3 tools/make-logo.py`. Sie enthalten bewusst weder den Kellogg's-Schriftzug noch Figuren aus dem Spiel. `assets/social-preview.png` ist das Vorschaubild für GitHub (Settings → Social preview).
 
 ## Danksagung
-
-Der Recompiler (Phase 4) baut auf den Mustern von [Stunts HD](https://github.com/mr-finster/stunts-hd) von mr-finster auf (MIT), mit seiner ausdrücklichen Erlaubnis ([Issue #19](https://github.com/mr-finster/stunts-hd/issues/19)). Vergleich und Plan: [docs/RECOMPILER.md](docs/RECOMPILER.md).
-
 
 Die Dateiformat-Analyse von [movAX13h](https://github.com/movAX13h/tony-and-friends-in-kelloggs-land) ist die wichtigste Vorarbeit. Sein Code ist nicht in diesem Repo (keine Lizenz). Das Spiel stammt von Factor 5 und Rauser Advertainment, die Figuren gehören Kellogg's. Dieses Projekt ist mit keinem davon verbunden.
 

@@ -28,10 +28,10 @@ Importe (nur diese müssen nachgebaut werden):
 | `__A000H`, `__B000H`, `__B800H`, `__0040H` | feste Selektoren für VGA-RAM, Text-RAM, BIOS-Daten |
 | `RTM.ord5/6/21` | noch zu klären (Borland RTM-API) |
 
-## Besonderheiten gegenüber Stunts HD
+## Besonderheiten
 
 1. **Protected Mode statt Real Mode.** Adressen sind Selektor:Offset. Wir brauchen eine kleine Deskriptortabelle statt `seg*16+off`. Das ist eher einfacher, weil jeder Speicherblock seinen eigenen Selektor hat.
-2. **Keine fertige Disassembly.** Stunts HD baut auf Restunts auf. Hier gibt es nur `START.idb` von movAX13h (IDA, nicht frei lesbar). Wir erzeugen die Funktionsliste (`map.json`) selbst, per rekursivem Abstieg ab dem Einsprung und allen Relocation-Zielen.
+2. **Keine fertige Disassembly.** Es gibt nur `START.idb` von movAX13h (IDA, nicht frei lesbar). Wir erzeugen die Funktionsliste (`map.json`) selbst, per rekursivem Abstieg ab dem Einsprung und allen Relocation-Zielen.
 3. **Selbst erzeugter Code.** Die .BOB-Sprites enthalten x86-Zeichencode, und `AllocDStoCSAlias` deutet darauf hin, dass das Spiel diesen Code ausführt. Diese Stellen können nicht vorab übersetzt werden. Lösung: Interpreter-Fallback (wie ein Mini-Emulator) für Code, der zur Laufzeit aus Daten kommt.
 4. **Sound.** TFMX-Musik und Samples über Sound Blaster (KELLOGG.INI: Port 220h, IRQ 7, DMA 1). Wir emulieren SB-DSP + DMA und mischen im AudioWorklet.
 

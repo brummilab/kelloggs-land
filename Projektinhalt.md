@@ -4,14 +4,16 @@
 Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbild von Stunts HD: originale START.EXE nach JavaScript übersetzen, auf emuliertem PC ausführen, Bild in HD per WebGL neu zeichnen.
 
 ## Entscheidungen
+- 18.10.2026: GitHub-Aktionen ab jetzt über den GitHub-MCP (Davids Wunsch).
 - 17.10.2026: Ansatz **echter Recomp** (nicht Engine-Nachbau).
 - 18.10.2026: Kellogg's Land HD bleibt eigenständig; Recompiler darf auf Stunts HD aufbauen (Nennung Pflicht).
 - 18.10.2026: Commits über GitHub-Noreply-Adresse (E-Mail-Datenschutz im Konto aktiv).
-- 17.10.2026: Repo **privat** unter `github.com/brummilab/kelloggs-land-hd`, Branch `main`.
+- 17.10.2026: Repo unter `github.com/brummilab/kelloggs-land-hd`, Branch `main` (anfangs privat, seit 18.10.2026 öffentlich).
 - Keine Spieldaten im Repo, Spieler bringt eigene Kopie mit (Ordner `game/`, in `.gitignore`).
 - Code von movAX13h wird nicht übernommen (keine Lizenz), nur als Referenz genutzt.
 
 ## Stand
+- Online spielbar: https://brummilab.github.io/kelloggs-land-hd/
 - Phase 0 (Analyse) erledigt: START.EXE ist NE / Borland Pascal 7 (RTM/DPMI), 5 Code-Segmente, ~100 KB Code, 16 Importe.
 - Phase 1+2 erledigt (18.10.2026): NE-Loader, x86-Interpreter (inkl. 386), emulierter PC (DOS, DPMI, KERNEL/RTM, PIT, PIC, Tastatur, VGA). Das Spiel läuft in Node bis ins Hauptmenü, Tasten funktionieren.
 - Phase 3 erledigt (18.10.2026): Browser-Version, spielbar bis ins erste Level. Zeilengenaue VGA (Statusleiste per Line Compare, Palettenwechsel per PEL-Maske). Veröffentlicht als privates Artifact „Kellogg's Land HD“ (claude.ai), dort mit eigener Spielkopie spielbar.
@@ -25,6 +27,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: GitHub-About gesetzt (Beschreibung + 10 Topics). GitHub Pages eingerichtet (Quelle: GitHub Actions, Workflow pages.yml veröffentlicht web/): https://brummilab.github.io/kelloggs-land-hd/
 - 18.10.2026: David hat Breitbild getestet: läuft gut.
 - 18.10.2026: Breitbild-Prototyp fertig: Level in 16:9 aus Karte/Kacheln/Sprites neu aufgebaut, Mitte im Stand pixelgleich mit dem Original, ~2 ms/Bild. Im Browser per „Breitbild“-Knopf (nur deutsche Version 147 200 Bytes). Artifact aktualisiert.
 - 18.10.2026: mr-finster antwortet (Issue #19): nimmt Kellogg's Land nicht in Stunts HD auf, erlaubt aber Nutzung von translate.js & Co. (MIT, mit Nennung). Übersetzer analysiert → docs/RECOMPILER.md: Muster übertragbar, Dekoder/Speichermodell nicht (386, Protected Mode). Vorschlag: blockweise Übersetzung zur Laufzeit.

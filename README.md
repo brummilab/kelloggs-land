@@ -45,6 +45,7 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | `tools/serve.py` | lokaler Webserver | ✅ |
 | `tools/browser-test.py` | automatischer Test in Headless-Chromium (Playwright) mit Tasten-Skript | ✅ |
 | `tools/ghidra/ExportKellogg.java`, `tools/trace-draw.mjs`, `tools/dump-scene.mjs`, `docs/map.json` | Reverse Engineering mit Ghidra: Funktionskarte, Zeichenroutinen, Szenendaten, siehe [docs/GRAFIK.md](docs/GRAFIK.md) | ✅ |
+| `.github/workflows/pages.yml` | veröffentlicht `web/` auf GitHub Pages | ✅ |
 | `tools/build-site.py` | statische Seite nach `dist/` bauen (`--artifact` für claude.ai) | ✅ |
 | `web/sb.js` | Sound Blaster (DSP 2.01) und DMA-Controller 8237, zeitgenau zur virtuellen Uhr | ✅ |
 | `web/audio-worklet.js` | Ausgabe im Browser: Ringpuffer, Umrechnung 20 kHz → Geräte-Rate, ~80 ms Latenz | ✅ |
@@ -52,6 +53,10 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 | HD-Grafik | WebGL-Renderer, Interpolation, hochauflösende Kacheln/Sprites | Phase 6 |
 
 ## Im Browser spielen
+
+**Online:** [brummilab.github.io/kelloggs-land-hd](https://brummilab.github.io/kelloggs-land-hd/) (eigene Spielkopie wählen, sie bleibt im Browser). Jede Änderung an `web/` auf `main` wird über `.github/workflows/pages.yml` automatisch veröffentlicht.
+
+Lokal:
 
 ```
 python3 tools/serve.py

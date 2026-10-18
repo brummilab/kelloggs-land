@@ -113,7 +113,9 @@ export class Machine {
   }
   // DOS-Speicher wie DOS selbst: first fit, Freigabe wird wiederverwendet. Der Soundtreiber
   // verlässt sich darauf, um seinen DMA-Puffer an einer 64-KB-Grenze auszurichten.
-  dosAlloc(paras) {
+  // fill: Inhalt neuer Blöcke. Für Programm-Anforderungen 80h (Mittellage für 8-Bit-Ton):
+  // Auf echter Hardware steht dort Restinhalt, mit Nullen würde der frische DMA-Puffer knacksen.
+  dosAlloc(paras, fill = 0) {
     paras = Math.max(1, paras);
     for (let i = 0; i < this.dosFree.length; i++) {
       const f = this.dosFree[i];
@@ -121,7 +123,7 @@ export class Machine {
         const seg = f.seg; f.seg += paras; f.paras -= paras;
         if (!f.paras) this.dosFree.splice(i, 1);
         this.dosUsed.set(seg, paras);
-        this.mem.fill(0, seg << 4, (seg + paras) << 4);
+        this.mem.fill(fill, seg << 4, (seg + paras) << 4);
         return seg;
       }
     }
@@ -259,7 +261,7 @@ export class Machine {
       'KERNEL.19': pas('GlobalUnlock', 2, () => { c.ax = 0; }),
       'KERNEL.20': pas('GlobalSize', 2, () => { const d = m.d(m.arg(0)); const s = d ? (d.size || d.limit + 1) : 0; c.ax = s & 0xffff; c.dx = s >>> 16; }),
       'KERNEL.184': pas('GlobalDOSAlloc', 4, () => {
-        const size = m.argD(0); const paras = (size + 15) >> 4; const seg = m.dosAlloc(paras);
+        const size = m.argD(0); const paras = (size + 15) >> 4; const seg = m.dosAlloc(paras, 0x80);
         if (seg === null) { c.ax = 0; c.dx = 0; return; }
         c.ax = m.allocSel(seg << 4, Math.min(0xffff, size - 1)); c.dx = seg; m.d(c.ax).dosSeg = seg;
       }),
@@ -585,7 +587,7 @@ export class Machine {
         let lim = m[p] | (m[p + 1] << 8) | ((m[p + 6] & 0xf) << 16); if (m[p + 6] & 0x80) lim = ((lim << 12) | 0xfff) >>> 0;
         d.limit = lim; d.access = m[p + 5]; this.refreshSegs(); return;
       }
-      case 0x0100: { const seg = this.dosAlloc(c.bx); if (seg === null) { c.cf = 1; c.ax = 8; c.bx = this.dosFree.reduce((a, f) => Math.max(a, f.paras), 0); return; } c.ax = seg; c.dx = this.allocSel(seg << 4, Math.min(0xffff, c.bx * 16 - 1)); this.d(c.dx).dosSeg = seg; return; }
+      case 0x0100: { const seg = this.dosAlloc(c.bx, 0x80); if (seg === null) { c.cf = 1; c.ax = 8; c.bx = this.dosFree.reduce((a, f) => Math.max(a, f.paras), 0); return; } c.ax = seg; c.dx = this.allocSel(seg << 4, Math.min(0xffff, c.bx * 16 - 1)); this.d(c.dx).dosSeg = seg; return; }
       case 0x0101: { const d = this.d(c.dx); if (d && d.dosSeg !== undefined) { this.dosFreeSeg(d.dosSeg); this.desc[c.dx >> 3] = null; } return; }
       case 0x0102: return;
       case 0x0200: { const v = this.rmVec[c.bl]; c.cx = v ? v.seg : 0xf000; c.dx = v ? v.off : 0; return; }

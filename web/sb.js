@@ -59,6 +59,7 @@ export class SoundBlaster {
     this.remaining = 0; this.blockLen = 0x800;
     this.pos = 0;            // Zeit der zuletzt erzeugten Probe (Sekunden)
     this.irqPending = false;
+    this.gain = 0; this.level = 0; this.zeroRun = 0; this.lastRaw = 128; // Ausgangsrampe gegen Knacksen
     this.direct = 128;       // letzter Wert bei direkter DAC-Ausgabe (Befehl 10h)
     this.buf = new Float32Array(4096); this.bufLen = 0;
     this.commands = new Map();
@@ -77,7 +78,7 @@ export class SoundBlaster {
   out(o, v, t) {
     if (o === 6) {
       if (v & 1) this.resetState = 1;
-      else if (this.resetState) { this.resetState = 0; this.q = [0xaa]; this.playing = false; this.need = 0; }
+      else if (this.resetState) { this.resetState = 0; this.q = [0xaa]; this.playing = false; this.need = 0; this.armed = true; }
       return;
     }
     if (o !== 0xc) return;
@@ -129,13 +130,29 @@ export class SoundBlaster {
       let s = 128;
       if (this.playing && !this.paused) {
         const v = this.dma.read(this.dmaCh);
-        if (v !== null) s = v;
+        if (v !== null) {
+          s = v;
+          // Nach einem Reset löscht das Spiel seinen Puffer mit 00h (= tiefster Ausschlag, nicht Stille).
+          // Bis echter Ton kommt, gilt 00h als Stille, sonst knackst jeder Szenenwechsel.
+          if (this.armed) { if (s === 0) s = 128; else if (s !== 128) this.armed = false; }
+        }
         if (--this.remaining <= 0) {
           if (this.auto) this.remaining = this.blockLen; else this.playing = false;
           this.irqPending = true; this.raiseIrq();
         }
       } else if (!this.playing) s = this.direct;
-      this.push(this.speaker ? (s - 128) / 128 : 0);
+      // Weiche Übergänge beim Starten/Stoppen der Wiedergabe und Lautsprecher an/aus (≈ 5 ms),
+      // damit Neustarts der Karte zwischen den Szenen nicht knacksen
+      const active = this.speaker && (this.playing || s !== 128);
+      this.gain += active ? (1 - this.gain) * 0.01 : -this.gain * 0.01;
+      // Längere Folgen von 00h (Spiel löscht den Puffer) weich ausblenden statt als Rechteck abspielen
+      this.zeroRun = s === 0 ? this.zeroRun + 1 : 0;
+      const x = (s - 128) / 128;
+      // Ein Sprung direkt von Stille (80h) auf 00h ist kein Ton, sondern ein gelöschter Puffer
+      if (s === 0 && this.lastRaw === 128) this.zeroRun = 9;
+      if (s !== 0) this.lastRaw = s;
+      this.level = active && this.zeroRun <= 8 ? x : this.level * 0.995;
+      this.push(this.level * this.gain);
     }
     this.pos += n * step;
   }

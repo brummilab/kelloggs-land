@@ -5,6 +5,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 
 ## Entscheidungen
 - 17.10.2026: Ansatz **echter Recomp** (nicht Engine-Nachbau).
+- 18.10.2026: Kellogg's Land HD bleibt eigenständig; Recompiler darf auf Stunts HD aufbauen (Nennung Pflicht).
 - 18.10.2026: Commits über GitHub-Noreply-Adresse (E-Mail-Datenschutz im Konto aktiv).
 - 17.10.2026: Repo **privat** unter `github.com/brummilab/kelloggs-land-hd`, Branch `main`.
 - Keine Spieldaten im Repo, Spieler bringt eigene Kopie mit (Ordner `game/`, in `.gitignore`).
@@ -24,6 +25,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: mr-finster antwortet (Issue #19): nimmt Kellogg's Land nicht in Stunts HD auf, erlaubt aber Nutzung von translate.js & Co. (MIT, mit Nennung). Übersetzer analysiert → docs/RECOMPILER.md: Muster übertragbar, Dekoder/Speichermodell nicht (386, Protected Mode). Vorschlag: blockweise Übersetzung zur Laufzeit.
 - 18.10.2026: Reverse Engineering der Grafik: REA (morluto/rea) installiert, kann NE nicht laden → Ghidra 11.3.1 headless direkt. Zeichenpipeline, Kamera, Level-Karte, Kachelformat, Sprite-Liste und kompilierte BOB-Sprites gefunden (docs/GRAFIK.md, docs/map.json). Grundlage für den HD-Renderer.
 - 18.10.2026: Issue #19 bei mr-finster/stunts-hd erstellt (Anfrage zur Zusammenarbeit): https://github.com/mr-finster/stunts-hd/issues/19
 - 18.10.2026: Davids Test: läuft mit 61–63 fps bei 66–69 % CPU. Knacksen am Anfang und zwischen Szenen behoben (Spiel löscht Puffer mit 00h). Frage an mr-finster (Stunts HD) zur Zusammenarbeit vorbereitet.

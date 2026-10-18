@@ -95,6 +95,9 @@ Browser-Test: `python3 tools/browser-test.py game out "wait:30,key:Space,wait:5,
 
 ## Danksagung
 
+Der Recompiler (Phase 4) baut auf den Mustern von [Stunts HD](https://github.com/mr-finster/stunts-hd) von mr-finster auf (MIT), mit seiner ausdrücklichen Erlaubnis ([Issue #19](https://github.com/mr-finster/stunts-hd/issues/19)). Vergleich und Plan: [docs/RECOMPILER.md](docs/RECOMPILER.md).
+
+
 Die Dateiformat-Analyse von [movAX13h](https://github.com/movAX13h/tony-and-friends-in-kelloggs-land) ist die wichtigste Vorarbeit. Sein Code ist nicht in diesem Repo (keine Lizenz). Das Spiel stammt von Factor 5 und Rauser Advertainment, die Figuren gehören Kellogg's. Dieses Projekt ist mit keinem davon verbunden.
 
 ## Lizenz

@@ -64,6 +64,9 @@ export class Scene {
       const e = list + i * 8;
       sprites.push({ x: s16(c.rw(e)), y: s16(c.rw(e + 2)), frame: c.rw(e + 4), flags: c.rw(e + 6) });
     }
+    // Neues Level (andere Karte oder Kachelgrafik): Bildnummern zeigen auf andere Grafiken
+    const lvl = `${this.w(V.map)}:${this.w(V.map + 2)}:${this.w(V.mapRow)}:${this.w(V.tileBase)}:${this.w(V.tileBase + 2)}`;
+    if (lvl !== this.level) { this.level = lvl; this.sprites.clear(); this.failed.clear(); this.gen = (this.gen || 0) + 1; }
     this.frame = {
       camX: s16(this.w(V.camX)), camY: s16(this.w(V.camY)),
       sprites, t: this.m.time,
@@ -237,6 +240,82 @@ export class Scene {
     return { width: W, height: H, rgba: new Uint8Array(out.buffer), playRows: rows };
   }
 }
+
+// Szene als Daten für den WebGL-Renderer im Hauptthread (web/gl.js): Kamera, Kachelausschnitt,
+// Sprite-Liste, Palette, PEL-Maske je Zeile, Statusleiste. Neue Kachel- und Sprite-Grafiken werden
+// einmal mitgeschickt. Gibt null zurück, wenn gerade kein Level läuft.
+Scene.prototype.snapshot = function (extra = 53) {
+  const f = this.frame, m = this.m, vga = m.vga;
+  const orig = vga.last || vga.render();
+  if (!f || orig.width !== 320) return null;
+  const V = this.p.v, c = this.cpu;
+  const H = orig.height, rows = Math.min(this.w(V.playRows) || 176, H);
+  const mapBase = this.far(V.map), rowBytes = this.w(V.mapRow), gs = this.far(V.tileBase);
+  if (mapBase === null || gs === null || !rowBytes) return null;
+  const mapCols = rowBytes >> 1;
+  if (this.sentGen !== this.gen) { this.sentGen = this.gen; this.sentTiles = new Set(); this.sentSprites = new Set(); this.reset = true; }
+  const o32 = new Uint32Array(orig.rgba.buffer, orig.rgba.byteOffset, orig.width * orig.height);
+  // Kachelausschnitt mit einer Kachel Rand (für Zwischenbilder)
+  const tx0 = ((f.camX - extra) >> 4) - 1, ty0 = (f.camY >> 4) - 1;
+  const cols = ((320 + 2 * extra) >> 4) + 4, trows = (rows >> 4) + 4;
+  const map = new Uint16Array(cols * trows), newTiles = [];
+  const gfxCache = new Map();
+  for (let ty = 0; ty < trows; ty++) for (let tx = 0; tx < cols; tx++) {
+    const mx = tx0 + tx, my = ty0 + ty;
+    let g = 0xffff;
+    if (mx >= 0 && mx < mapCols && my >= 0) {
+      const id = c.rw(mapBase + my * rowBytes + mx * 2) & 0x1ff;
+      g = gfxCache.get(id); if (g === undefined) { g = this.tileGfx(id) & 0x7ff; gfxCache.set(id, g); }
+      if (!this.sentTiles.has(g)) {
+        this.sentTiles.add(g);
+        const px = new Uint8Array(256), b = gs + g * 0x100;
+        for (let iy = 0; iy < 16; iy++) for (let ix = 0; ix < 16; ix++) px[iy * 16 + ix] = m.mem[b + ((ix & 3) << 2 | ix >> 2) + iy * 16];
+        newTiles.push([g, px]);
+      }
+    }
+    map[ty * cols + tx] = g;
+  }
+  // Sprites; fehlende Bilder abseits zeichnen lassen
+  let budget = 6; const sprites = [], newSprites = [];
+  for (const s of f.sprites) {
+    if ((s.frame & 0xb000) || (s.flags & 0xff)) continue;
+    const k = s.frame & 0x0fff;
+    if (budget > 0 && !this.sprites.has(k) && !this.failed.has(k)) { budget--; this.renderOffscreen(s.frame); }
+    const img = this.sprites.get(k);
+    if (!img) continue;
+    if (!this.sentSprites.has(k)) {
+      this.sentSprites.add(k);
+      const px = new Uint8Array(img.w * img.h * 2);
+      for (let i = 0; i < img.w * img.h; i++) { px[i * 2] = img.idx[i]; px[i * 2 + 1] = img.alpha[i] ? 255 : 0; }
+      newSprites.push({ k, w: img.w, h: img.h, px });
+    }
+    sprites.push({ k, x: s.x - img.hx, y: s.y - img.hy, w: img.w, h: img.h, flash: (s.flags & 0x100) ? 1 : 0 });
+  }
+  // Spielschleife steht (Infofenster, Pause): Mitte aus dem Original; anderer Bildschirm: kein Level
+  let overlay = null;
+  if (m.time - f.t > 0.1) {
+    const pal = vga.palette32();
+    let diff = 0, total = 0;
+    for (let y = 0; y < rows; y++) {
+      const mask = vga.rowMask ? vga.rowMask[y] : 0xff, wy = f.camY + y;
+      for (const x of [0, 1, 2, 3, 4, 5, 6, 7, 312, 313, 314, 315, 316, 317, 318, 319]) {
+        const wx = f.camX + x; let ci = 0;
+        if (wx >= 0 && (wx >> 4) < mapCols && wy >= 0) {
+          const g = this.tileGfx(c.rw(mapBase + (wy >> 4) * rowBytes + (wx >> 4) * 2) & 0x1ff), ix = wx & 15;
+          ci = m.mem[gs + g * 0x100 + ((ix & 3) << 2 | ix >> 2) + (wy & 15) * 16];
+        }
+        total++; if (o32[y * 320 + x] !== pal[ci & mask]) diff++;
+      }
+    }
+    if (diff > total * 0.5) return null;
+    overlay = new Uint8Array(orig.rgba.buffer.slice(orig.rgba.byteOffset, orig.rgba.byteOffset + 320 * rows * 4));
+  }
+  const pal = new Uint8Array(vga.palette32().slice().buffer);
+  const mask = new Uint8Array(H); for (let y = 0; y < H; y++) mask[y] = vga.rowMask ? vga.rowMask[y] : 0xff;
+  const status = new Uint8Array(orig.rgba.buffer.slice(orig.rgba.byteOffset + 320 * rows * 4, orig.rgba.byteOffset + 320 * H * 4));
+  const reset = !!this.reset; this.reset = false;
+  return { t: f.t, camX: f.camX, camY: f.camY, extra, H, rows, tx0, ty0, cols, trows, map, sprites, newTiles, newSprites, pal, mask, status, overlay, reset };
+};
 
 export function sceneFor(m) {
   const exe = m.file('START.EXE');

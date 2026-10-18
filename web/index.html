@@ -55,6 +55,9 @@
   #stage:fullscreen { border-radius: 0; display: grid; place-items: center; }
   #stage:fullscreen canvas { width: auto; height: 100%; max-width: 100%; }
   canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; outline: none; }
+  #gl { position: absolute; inset: 0; pointer-events: none; visibility: hidden; }
+  #stage.gl #gl { visibility: visible; }
+  #stage:fullscreen #gl { width: 100%; height: 100%; object-fit: contain; }
 
   #drop {
     position: absolute; inset: 0; display: grid; place-content: center; gap: 16px; text-align: center; padding: 24px;
@@ -110,6 +113,7 @@
   <div class="frame">
     <div id="stage">
       <canvas id="screen" width="640" height="480" tabindex="0" aria-label="Spielbild"></canvas>
+      <canvas id="gl" aria-hidden="true"></canvas>
       <div id="drop">
         <h2>Tony &amp; Friends in Kellogg's Land</h2>
         <p>Wähle deine eigene Kopie des Spiels (DOS, 1994). Die Dateien werden nur hier im Browser gelesen und nirgends hochgeladen.</p>

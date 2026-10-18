@@ -1,6 +1,7 @@
 // Seite: Spieldateien einlesen, Worker starten, Bild zeichnen, Tastatur weiterreichen.
 
 import { readZip } from './zip.js';
+import { GLRenderer } from './gl.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('screen'), ctx = canvas.getContext('2d');
@@ -8,7 +9,8 @@ const off = document.createElement('canvas'), offCtx = off.getContext('2d');
 let worker = null, started = false;
 let audio = null, audioNode = null, soundOn = false;
 // Breitbild 16:9: neu aufgebautes Level (Kacheln + Sprites aus dem Speicher des Spiels)
-let wideOn = false;
+let wideOn = false, glr = null, glActive = false;
+try { glr = new GLRenderer(document.getElementById('gl')); } catch (e) { glr = null; }
 try { wideOn = localStorage.getItem('kelloggs-wide') === '1'; } catch {}
 function setWide(on) {
   wideOn = on;
@@ -16,11 +18,23 @@ function setWide(on) {
   document.getElementById('stage').classList.toggle('wide', on);
   const b = document.getElementById('wide'); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? 'Breitbild an' : 'Breitbild';
   try { localStorage.setItem('kelloggs-wide', on ? '1' : '0'); } catch {}
-  if (worker) worker.postMessage({ type: 'wide', on });
+  if (worker) worker.postMessage({ type: 'wide', on, gl: !!glr });
+  if (!on) setGl(false);
 }
+function setGl(on) {
+  if (glActive === on) return;
+  glActive = on; document.getElementById('stage').classList.toggle('gl', on);
+}
+// WebGL-Breitbild: jedes Bildschirmbild zeichnen, mit Zwischenbildern zwischen den Szenen des Spiels
+function glLoop() {
+  if (glActive && glr && glr.draw()) countFrame();
+  requestAnimationFrame(glLoop);
+}
+requestAnimationFrame(glLoop);
 // Zustand für Tests und Fehlersuche (Konsole: kelloggs)
 const debug = { audioSamples: 0, audioRate: 0, get audioState() { return audio ? audio.state : 'aus'; } };
 window.kelloggs = debug;
+debug.gl = () => glr; debug.glActive = () => glActive;
 
 // Ton erst nach einem Klick (Browser-Regel für Autoplay)
 async function setSound(on) {
@@ -92,7 +106,16 @@ async function start(fileList) {
   canvas.focus();
 }
 
-let frames = 0, lastFps = performance.now(), loadAvg = 0;
+let frames = 0, lastFps = performance.now(), loadAvg = 0, modeText = '–';
+function countFrame() {
+  frames++;
+  const now = performance.now();
+  if (now - lastFps > 1000) {
+    $('mode').textContent = modeText;
+    $('fps').textContent = `${Math.round(frames * 1000 / (now - lastFps))} fps · CPU ${Math.round(loadAvg * 100)} %`;
+    frames = 0; lastFps = now;
+  }
+}
 function onWorker(e) {
   const m = e.data;
   if (m.type === 'frame') {
@@ -105,18 +128,16 @@ function onWorker(e) {
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, x0, canvas.height); ctx.fillRect(x0 + w43, 0, canvas.width - x0 - w43, canvas.height);
       ctx.drawImage(off, x0, 0, w43, canvas.height);
     } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
-    frames++; loadAvg = loadAvg * 0.95 + m.load * 0.05;
-    const now = performance.now();
-    if (now - lastFps > 1000) {
-      $('mode').textContent = `${m.w}×${m.h} · Modus ${m.mode.toString(16).toUpperCase()}h`;
-      $('fps').textContent = `${Math.round(frames * 1000 / (now - lastFps))} fps · CPU ${Math.round(loadAvg * 100)} %`;
-      frames = 0; lastFps = now;
-    }
+    setGl(false);
+    countFrame(); loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.w}×${m.h} · Modus ${m.mode.toString(16).toUpperCase()}h`;
+  } else if (m.type === 'scene') {
+    glr.push(m.scene); setGl(true);
+    loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `Breitbild WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}`;
   } else if (m.type === 'wide-support') {
     const btn = $('wide');
     btn.disabled = !m.on;
     btn.title = m.on ? `Breitbild 16:9 für die ${m.name}` : 'Breitbild gibt es bisher nur für die deutsche Version (START.EXE mit 147 200 Bytes)';
-    if (m.on && wideOn) worker.postMessage({ type: 'wide', on: true });
+    if (m.on && wideOn) worker.postMessage({ type: 'wide', on: true, gl: !!glr });
     else if (!m.on) setWide(false);
   } else if (m.type === 'audio') {
     debug.audioSamples += m.samples.length; debug.audioRate = m.rate;
@@ -164,7 +185,7 @@ $('full').addEventListener('click', async () => {
 });
 $('sound').addEventListener('click', () => { setSound(!soundOn); canvas.focus(); });
 $('volume').addEventListener('input', (e) => audioNode && audioNode.port.postMessage({ vol: +e.target.value }));
-$('speed').addEventListener('change', (e) => worker && worker.postMessage({ type: 'speed', value: +e.target.value }));
+$('speed').addEventListener('change', (e) => { if (glr) glr.speed = +e.target.value; worker && worker.postMessage({ type: 'speed', value: +e.target.value }); });
 
 // Startbild: Testbild im Spielrahmen
 ctx.fillStyle = '#0b1a63'; ctx.fillRect(0, 0, canvas.width, canvas.height);

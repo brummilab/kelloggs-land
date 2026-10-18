@@ -28,8 +28,9 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ⬜ Foreground tiles and draw order checks
 - ⬜ Verify all levels and worlds, boss fights, bonus stages
 - ⬜ Profiles for other game releases (e.g. START.EXE 148,480 bytes)
-- ⬜ WebGL renderer with integer and smooth scaling
-- ⬜ Frame interpolation for smoother scrolling
+- ✅ WebGL2 renderer (palette, PEL mask, tiles and sprites on the GPU; software fallback)
+- 🔨 Frame interpolation for smoother scrolling (camera and sprites, at the monitor's refresh rate; needs testing on real hardware)
+- ⬜ Sharper scaling options (integer scaling, sharp bilinear)
 - ⬜ Optional HD pack: high-resolution tiles and sprites generated locally from the player's own `PCKELL.DAT`
 
 ## Phase 4: Recompiler ⬜

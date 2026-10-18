@@ -44,6 +44,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/sb.js` | Sound Blaster (DSP 2.01) and 8237 DMA controller, timed to the virtual clock | ✅ |
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
+| `web/gl.js` | WebGL2 renderer for widescreen: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
 | `web/scene.js`, `tools/hd-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |
@@ -52,7 +53,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `tools/build-site.py` | build a static site into `dist/` | ✅ |
 | `.github/workflows/pages.yml` | publishes `web/` to GitHub Pages | ✅ |
 | `web/translate.js` | translates game code to JavaScript (recompiler), plan: [docs/RECOMPILER.md](docs/RECOMPILER.md) | planned |
-| HD graphics | WebGL renderer, interpolation, high-resolution tiles/sprites | planned |
+| HD graphics | high-resolution tiles/sprites | planned |
 
 ## Playing in the browser
 

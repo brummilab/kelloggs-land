@@ -84,6 +84,15 @@ Umgesetzt und im Browser schaltbar („Breitbild“):
 - **Breite**: 320 + 2·53 = 426 Spielpixel, auf 16:9 skaliert (die Pixel sind wie im Original höher als breit).
 - **Prüfung** (`node tools/hd-test.mjs <spiel> <out>`): Im Stand ist die Mitte des Breitbilds **pixelgleich** mit dem Originalbild (0,00 % Abweichung); beim Laufen liegt der Neuaufbau ein Bild vor dem zuletzt angezeigten Original. Komposition ≈ 2 ms je Bild.
 
+## WebGL-Renderer mit Zwischenbildern (`web/gl.js`)
+
+Seit 18.10.2026 zeichnet im Browser die Grafikkarte das Breitbild:
+
+- **Worker** (`scene.snapshot()`): schickt pro Bild nur Daten, keine Pixel: Kamera, Kachelausschnitt (Grafikindex je Kachel, eine Kachel Rand), Sprite-Liste (Bildnummer, Position, Aufblitzen), Palette, PEL-Maske je Zeile, Statusleiste (320×24) und bei stehender Spielschleife das Originalbild der Mitte. Neue Kachel- und Sprite-Grafiken gehen einmal mit (Kacheln linear umsortiert, Sprites als Farbindex + Deckkraft). Bei neuem Level (andere Karte/Kachelgrafik) werden die Caches geleert.
+- **Seite** (`GLRenderer`): Kachel-Atlas 1024×512 (R8), Sprite-Atlas 2048×2048 (RG8), Palette und PEL-Maske als Texturen. Der Shader rechnet wie das Original über den Farbindex: `Palette[Index & Maske(Zeile)]`.
+- **Zwischenbilder**: Die Seite zeichnet mit der Bildwiederholrate des Monitors (requestAnimationFrame) und rechnet die Spielzeit dazu (Uhr-Abgleich mit den Szenen, 20 ms Verzögerung). Kamera und Sprites werden zwischen den zwei umgebenden Szenen interpoliert; Sprites über Listenplatz und Nähe zugeordnet, Ankerpunkt Mitte unten. Sprünge über 24 Pixel (Teleport, Levelstart) werden nicht interpoliert.
+- **Ohne WebGL2** bleibt der Software-Weg (`compose()`), ebenso für `tools/hd-test.mjs`.
+
 ## Was das für HD bedeutet
 
 Pro Bild kann der Emulator vor `draw_sprite_list` eine **Szenenbeschreibung** auslesen: Kamera, Level-Karte, Kachelgrafik und Sprite-Liste mit Bildnummern. Ein WebGL-Renderer kann daraus

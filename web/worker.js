@@ -5,7 +5,7 @@ import { sceneFor } from './scene.js';
 
 let m = null, last = 0, paused = false, speed = 1, lastFrame = -1;
 let audioOn = false, audioChunks = [], audioRate = 20000;
-let scene = null, wide = false;
+let scene = null, wide = false, gl = false;
 
 function onSamples(buf, rate) {
   if (!audioOn) return;
@@ -37,9 +37,23 @@ function tick() {
   const busy = performance.now() - t0;
   if (m.vga.frames === lastFrame && m.vga.last) return; // kein neues Bild seit dem letzten Tick
   lastFrame = m.vga.frames;
-  // Breitbild, wenn eingeschaltet und gerade ein Level läuft; sonst das Originalbild
-  const f = (wide && scene && scene.compose()) || m.frame();
-  postMessage({ type: 'frame', w: f.width, h: f.height, buf: f.rgba.buffer, mode: m.vga.mode, t: m.time, load: busy / (dt * 1000 || 1) }, [f.rgba.buffer]);
+  const load = busy / (dt * 1000 || 1);
+  // Breitbild mit WebGL: Szenendaten an die Seite, die zeichnet selbst (mit Zwischenbildern)
+  if (wide && gl && scene) {
+    const s = scene.snapshot();
+    if (s) {
+      const tr = [s.map.buffer, s.pal.buffer, s.mask.buffer, s.status.buffer];
+      if (s.overlay) tr.push(s.overlay.buffer);
+      for (const [, px] of s.newTiles) tr.push(px.buffer);
+      for (const sp of s.newSprites) tr.push(sp.px.buffer);
+      postMessage({ type: 'scene', scene: s, mode: m.vga.mode, load }, tr);
+      if (m.exitCode !== null) { postMessage({ type: 'exit', code: m.exitCode }); m = null; }
+      return;
+    }
+  }
+  // Breitbild ohne WebGL (Software), wenn gerade ein Level läuft; sonst das Originalbild
+  const f = (wide && !gl && scene && scene.compose()) || m.frame();
+  postMessage({ type: 'frame', w: f.width, h: f.height, buf: f.rgba.buffer, mode: m.vga.mode, t: m.time, load }, [f.rgba.buffer]);
   if (m.exitCode !== null) { postMessage({ type: 'exit', code: m.exitCode }); m = null; }
 }
 
@@ -70,7 +84,7 @@ onmessage = (e) => {
   } else if (msg.type === 'audio') {
     audioOn = msg.on; audioChunks = [];
   } else if (msg.type === 'wide') {
-    wide = msg.on; lastFrame = -1;
+    wide = msg.on; gl = !!msg.gl; lastFrame = -1;
   } else if (msg.type === 'speed') {
     speed = msg.value;
   }

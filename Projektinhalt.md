@@ -25,6 +25,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: David hat Breitbild getestet: läuft gut.
 - 18.10.2026: Breitbild-Prototyp fertig: Level in 16:9 aus Karte/Kacheln/Sprites neu aufgebaut, Mitte im Stand pixelgleich mit dem Original, ~2 ms/Bild. Im Browser per „Breitbild“-Knopf (nur deutsche Version 147 200 Bytes). Artifact aktualisiert.
 - 18.10.2026: mr-finster antwortet (Issue #19): nimmt Kellogg's Land nicht in Stunts HD auf, erlaubt aber Nutzung von translate.js & Co. (MIT, mit Nennung). Übersetzer analysiert → docs/RECOMPILER.md: Muster übertragbar, Dekoder/Speichermodell nicht (386, Protected Mode). Vorschlag: blockweise Übersetzung zur Laufzeit.
 - 18.10.2026: Reverse Engineering der Grafik: REA (morluto/rea) installiert, kann NE nicht laden → Ghidra 11.3.1 headless direkt. Zeichenpipeline, Kamera, Level-Karte, Kachelformat, Sprite-Liste und kompilierte BOB-Sprites gefunden (docs/GRAFIK.md, docs/map.json). Grundlage für den HD-Renderer.

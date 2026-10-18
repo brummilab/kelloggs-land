@@ -4,6 +4,7 @@
 Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale START.EXE nach JavaScript übersetzen, auf emuliertem PC ausführen, Bild in HD per WebGL neu zeichnen.
 
 ## Entscheidungen
+- 18.10.2026: HD zuerst über Pixel-Art-Skalierer im Shader (keine Grafikdateien im Repo); KI-HD-Paket später optional.
 - 18.10.2026: README und ROADMAP auf Englisch (Davids Wunsch); Projektinhalt und docs/ bleiben deutsch.
 - 18.10.2026: GitHub-Aktionen ab jetzt über den GitHub-MCP (Davids Wunsch).
 - 17.10.2026: Ansatz **echter Recomp** (nicht Engine-Nachbau).
@@ -27,6 +28,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: HD-Modus Weg 1: xBR-lv2-Skalierer (Hyllian, MIT) auf der Grafikkarte für Level, Menüs und Titel, Umschalter „Grafik: HD / Pixel“. Weg 2 (KI-Hochskalierung als HD-Paket aus eigener PCKELL.DAT) bleibt optional für später.
 - 18.10.2026: WebGL-Renderer fürs Breitbild (web/gl.js): Worker schickt nur noch Szenendaten, die Grafikkarte zeichnet; Zwischenbilder für flüssiges Scrollen (Kamera und Sprites interpoliert, Monitor-Bildrate). Ohne WebGL2 bleibt der Software-Weg. Test in Headless-Chromium ok, echter Test durch David offen.
 - 18.10.2026: David bestätigt: Infofenster im Breitbild geht jetzt.
 - 18.10.2026: Davids Test: Breitbild läuft gut, aber beim Fragezeichen-Block fehlte das Infofenster (nur im Breitbild). Ursache: Spielschleife steht, Fenster wird direkt in den Bildspeicher gezeichnet. Lösung: bei stehender Szene Mitte aus dem Originalbild, Ränder aus der Szene; anderer Bildschirm (Karte) → Originalbild.

@@ -1,0 +1,9 @@
+game/
+*.EXE
+*.exe
+*.DAT
+*.OVL
+*.idb
+__pycache__/
+node_modules/
+dist/

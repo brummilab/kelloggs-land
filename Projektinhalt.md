@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Export verbessert: Dateien nummeriert (NNN_t_…), Übersichtsblätter für Kacheln und Sprites mit Nummern. David will selbst zeichnen.
 - 18.10.2026: KI-Variante von David abgelehnt, Punkt 3 umgesetzt: Grafik-Werkstatt im Browser. Export aller Kacheln des Levels und gesehenen Sprites als PNG (Original + 4-fach-Vorlage, Übersichtsblatt), Import eines HD-Pakets (Ordner/ZIP), Ersatz über Inhalts-Kennung, Spielfeld dann in 4-facher Auflösung, automatisches Umfärben (Einblenden, Wasser, Aufblitzen), Speicherung im Browser. Test im Headless-Chromium mit Test-Paket ok. Anleitung docs/HD-PAKET.md. Auch 4:3 läuft jetzt über WebGL.
 - 18.10.2026: KI-Hochskalierung getestet (Real-ESRGAN general-x4v3, animevideov3, x4plus_anime_6B; eigene numpy-Inferenz ohne torch, Gewichte von GitHub). anime_6B am saubersten, wirkt aber gemalt. Vergleichsbild an David, Entscheidung offen. Blender: nur sinnvoll, wenn Grafik von Hand neu modelliert wird.
 - 18.10.2026: Davids Feedback: xBR-Leiste gefällt, Spielfeld mit xBR wirkt wie „KI-Slop“; Infofenster flackert. Geändert: xBR nur noch für Statusleiste und Infofenster, Spielfeld/Menüs scharf-bilinear (gleichmäßige Pixel). Flackern behoben (einzelne Übergangsbilder wurden als „anderer Bildschirm“ erkannt, jetzt erst nach 20 Bildern).

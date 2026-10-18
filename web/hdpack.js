@@ -62,6 +62,15 @@ function png(rgba, w, h, scale = 1) {
   return out;
 }
 
+// Ziffern 3×5 für die Nummern auf den Übersichtsblättern
+const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001010010010', '111101111101111', '111101111001111'];
+function text(img, W, str, x0, y0) {
+  [...str].forEach((ch, k) => {
+    const g = DIGITS[+ch];
+    for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) if (g[y * 3 + x] === '1') { const o = ((y0 + y) * W + x0 + k * 4 + x) * 4; img[o] = img[o + 1] = img[o + 2] = 255; }
+  });
+}
+
 // Farbindizes -> RGBA mit der Palette des Spiels (ohne PEL-Maske, also die „normalen“ Farben)
 function toRGBA(idx, alpha, pal) {
   const out = new Uint8Array(idx.length * 4);
@@ -77,8 +86,9 @@ const README = `Kellogg's Land HD – Grafik-Export
 
 Diese Dateien stammen aus deiner eigenen Spielkopie. Bitte nicht veröffentlichen.
 
-original/   Kacheln (t_*.png, 16×16) und Sprites (s_*.png) in Originalgröße
+original/   Kacheln (NNN_t_*.png, 16×16) und Sprites (NNN_s_*.png) in Originalgröße
 hd-vorlage/ dieselben Bilder 4-fach vergrößert (Kachel 64×64): hier drin zeichnen
+uebersicht-kacheln.png / uebersicht-sprites.png: alle Bilder mit ihrer Nummer NNN
 
 So entsteht ein HD-Paket:
 1. Bilder aus hd-vorlage/ in einem Grafikprogramm verbessern (Aseprite, Krita, Photoshop, GIMP …).
@@ -88,7 +98,7 @@ So entsteht ein HD-Paket:
 
 Hinweise:
 - Kacheln liegen nebeneinander: Ränder so zeichnen, dass sie an die Nachbarkacheln passen
-  (die Übersicht uebersicht-kacheln.png zeigt alle Kacheln des Levels).
+  (uebersicht-kacheln.png zeigt alle Kacheln mit Nummer; die Nummer steht vorn im Dateinamen).
 - Farben dürfen frei gewählt werden. Einblenden, Wasser und Aufblitzen färbt das Spiel automatisch um.
 - Sprites, die du im Spiel noch nicht gesehen hast, fehlen im Export: weiterspielen und erneut exportieren.
 `;
@@ -97,30 +107,47 @@ Hinweise:
 export async function exportPack(gfx, onProgress = () => {}) {
   const files = [['LIESMICH.txt', new TextEncoder().encode(README)]];
   const n = gfx.tiles.length + gfx.sprites.length; let done = 0;
-  for (const t of gfx.tiles) {
+  const nr = (i) => String(i).padStart(3, '0');
+  for (const [i, t] of gfx.tiles.entries()) {
     const rgba = toRGBA(t.px, null, gfx.pal);
-    files.push([`original/kacheln/t_${t.hash}.png`, png(rgba, 16, 16)]);
-    files.push([`hd-vorlage/kacheln/t_${t.hash}.png`, png(rgba, 16, 16, 4)]);
+    files.push([`original/kacheln/${nr(i)}_t_${t.hash}.png`, png(rgba, 16, 16)]);
+    files.push([`hd-vorlage/kacheln/${nr(i)}_t_${t.hash}.png`, png(rgba, 16, 16, 4)]);
     if (++done % 50 === 0) { onProgress(done / n); await new Promise((r) => setTimeout(r)); }
   }
-  for (const s of gfx.sprites) {
+  for (const [i, s] of gfx.sprites.entries()) {
     const idx = new Uint8Array(s.w * s.h), alpha = new Uint8Array(s.w * s.h);
     for (let i = 0; i < idx.length; i++) { idx[i] = s.px[i * 2]; alpha[i] = s.px[i * 2 + 1]; }
     const rgba = toRGBA(idx, alpha, gfx.pal);
-    files.push([`original/sprites/s_${s.hash}.png`, png(rgba, s.w, s.h)]);
-    files.push([`hd-vorlage/sprites/s_${s.hash}.png`, png(rgba, s.w, s.h, 4)]);
+    files.push([`original/sprites/${nr(i)}_s_${s.hash}.png`, png(rgba, s.w, s.h)]);
+    files.push([`hd-vorlage/sprites/${nr(i)}_s_${s.hash}.png`, png(rgba, s.w, s.h, 4)]);
     if (++done % 50 === 0) { onProgress(done / n); await new Promise((r) => setTimeout(r)); }
   }
-  // Übersicht aller Kacheln (16 je Zeile, 4-fach, 2 Pixel Abstand, Zwischenraum magenta)
-  const cols = 16, rows = Math.ceil(gfx.tiles.length / cols), S = 18;
-  if (rows) {
-    const W = cols * S, H = rows * S, sheet = new Uint8Array(W * H * 4);
-    for (let i = 0; i < W * H; i++) { sheet[i * 4] = 255; sheet[i * 4 + 2] = 255; sheet[i * 4 + 3] = 255; }
-    gfx.tiles.forEach((t, i) => {
-      const rgba = toRGBA(t.px, null, gfx.pal), ox = (i % cols) * S, oy = Math.floor(i / cols) * S;
-      for (let y = 0; y < 16; y++) sheet.set(rgba.subarray(y * 64, y * 64 + 64), ((oy + y) * W + ox) * 4);
+  // Übersichtsblätter: jede Grafik mit ihrer Nummer (wie im Dateinamen), 4-fach, Zwischenraum magenta
+  const sheet = (items, cw, chh, draw) => {
+    const cols = Math.max(1, Math.floor(1024 / (cw * 4))), rows = Math.ceil(items.length / cols), CW = cw + 2, CH = chh + 9;
+    const W = cols * CW, H = rows * CH, img = new Uint8Array(W * H * 4);
+    for (let i = 0; i < W * H; i++) { img[i * 4] = 255; img[i * 4 + 1] = 0; img[i * 4 + 2] = 255; img[i * 4 + 3] = 255; }
+    items.forEach((it, i) => {
+      const ox = (i % cols) * CW, oy = Math.floor(i / cols) * CH;
+      draw(it, img, W, ox, oy);
+      for (let y = 0; y < 7; y++) for (let x = 0; x < cw; x++) { const o = ((oy + chh + 1 + y) * W + ox + x) * 4; img[o] = 20; img[o + 1] = 20; img[o + 2] = 40; }
+      text(img, W, nr(i), ox + 1, oy + chh + 2);
     });
-    files.push(['uebersicht-kacheln.png', png(sheet, W, H, 4)]);
+    return png(img, W, H, 4);
+  };
+  if (gfx.tiles.length) files.push(['uebersicht-kacheln.png', sheet(gfx.tiles, 16, 16, (t, img, W, ox, oy) => {
+    const rgba = toRGBA(t.px, null, gfx.pal);
+    for (let y = 0; y < 16; y++) img.set(rgba.subarray(y * 64, y * 64 + 64), ((oy + y) * W + ox) * 4);
+  })]);
+  if (gfx.sprites.length) {
+    const mw = Math.max(...gfx.sprites.map((s) => s.w)), mh = Math.max(...gfx.sprites.map((s) => s.h));
+    files.push(['uebersicht-sprites.png', sheet(gfx.sprites, Math.max(mw, 13), mh, (s, img, W, ox, oy) => {
+      for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+        const i = y * s.w + x; if (!s.px[i * 2 + 1]) continue;
+        const c = s.px[i * 2] * 4, o = ((oy + y) * W + ox + x) * 4;
+        img[o] = gfx.pal[c]; img[o + 1] = gfx.pal[c + 1]; img[o + 2] = gfx.pal[c + 2];
+      }
+    })]);
   }
   onProgress(1);
   return await makeZip(files);
@@ -135,7 +162,7 @@ export async function readPack(fileEntries) {
   }
   // alle Bilder gleichzeitig entpacken (schneller als nacheinander)
   const decoded = await Promise.all(raw.map(async ([name, data]) => {
-    const m = /(?:^|\/)([ts])_([0-9a-f]{8})\.png$/i.exec(name);
+    const m = /(?:^|\/|_)([ts])_([0-9a-f]{8})\.png$/i.exec(name);
     if (!m || /(^|\/)original\//i.test(name)) return null;  // unveränderte Originale aus dem Export überspringen
     try { return [m[1].toLowerCase() + '_' + m[2].toLowerCase(), await decodePNG(data)]; } catch { return null; }
   }));

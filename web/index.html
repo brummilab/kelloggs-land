@@ -96,6 +96,13 @@
   kbd { font-family: var(--f-mono); font-size: 12px; background: var(--navy-deep); border: 1px solid #2c3d9a; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--ink); }
 
   details { border-top: 1px solid #22348c; padding-top: 10px; }
+  .workshop p { font-size: 14px; color: var(--muted); max-width: 75ch; margin: 8px 0; }
+  .workshop b { color: var(--gold); }
+  .buttons.left { justify-content: flex-start; }
+  .workshop button, .filebtn { font: 600 12.5px var(--f-mono); color: var(--ink); background: var(--navy-deep); border: 1px solid #2c3d9a; border-radius: 8px; padding: 7px 12px; cursor: pointer; position: relative; }
+  .filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .filebtn:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .hdstatus { font-family: var(--f-mono); font-size: 12.5px; min-height: 1.5em; }
   summary { cursor: pointer; font: 600 12.5px var(--f-mono); color: var(--muted); }
   #log { font: 12px/1.5 var(--f-mono); color: var(--muted); background: var(--navy-deep); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
   footer { font-size: 12.5px; color: var(--muted); max-width: 75ch; }
@@ -159,6 +166,20 @@
       <p>Der originale Code aus START.EXE, Befehl für Befehl in einem x86-Interpreter auf einem nachgebauten PC mit VGA, Timer und Tastatur. Musik und Effekte kommen über einen nachgebauten Sound Blaster (8 Bit, 20 kHz, DMA). „Breitbild“ baut das Level in 16:9 aus Karte, Kacheln und Sprites des Spiels neu auf (vorerst für die deutsche Version mit START.EXE 147 200 Bytes); echte HD-Grafik folgt. Auf dem Titelbild geht es mit der Leertaste weiter, im Menü ist Start schon ausgewählt.</p>
     </div>
   </section>
+
+  <details id="workshop">
+    <summary>Grafik-Werkstatt (eigene HD-Grafik)</summary>
+    <div class="workshop">
+      <p>Hier kannst du die Grafiken des Spiels selbst verbessern. <b>1.</b> Ins Level gehen und „Grafik exportieren“: Du bekommst alle Kacheln des Levels und alle bisher gesehenen Figuren als PNG, auch 4-fach vergrößert als Vorlage. <b>2.</b> Die Vorlagen im Grafikprogramm deiner Wahl verbessern (Größe und Dateiname behalten). <b>3.</b> „HD-Paket laden“: Die geänderten Bilder ersetzen sofort die Originale. Das Paket bleibt in diesem Browser gespeichert und wird nirgends hochgeladen.</p>
+      <div class="buttons left">
+        <button id="hdexport" type="button">Grafik exportieren</button>
+        <label class="filebtn">HD-Paket laden (ZIP/PNG)<input id="hdpick" type="file" multiple accept=".zip,.png"></label>
+        <label class="filebtn">HD-Ordner laden<input id="hdpickdir" type="file" webkitdirectory multiple></label>
+        <button id="hdclear" type="button" hidden>HD-Paket entfernen</button>
+      </div>
+      <p id="hdstatus" class="hdstatus" role="status"></p>
+    </div>
+  </details>
 
   <details id="logbox">
     <summary>Protokoll</summary>

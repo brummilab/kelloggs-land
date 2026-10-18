@@ -23,6 +23,14 @@ export const PROFILES = {
 
 const s16 = (v) => (v << 16) >> 16;
 
+// Inhalts-Kennung einer Grafik (FNV-1a, 32 Bit, hex). Damit findet ein HD-Paket seine Kacheln und
+// Sprites unabhängig von Level, Speicherplatz und Spielversion wieder.
+export function gfxHash(bytes, w = 0, h = 0) {
+  let x = 0x811c9dc5 ^ (w * 31 + h);
+  for (let i = 0; i < bytes.length; i++) { x ^= bytes[i]; x = Math.imul(x, 0x01000193); }
+  return (x >>> 0).toString(16).padStart(8, '0');
+}
+
 export class Scene {
   constructor(m, profile) {
     this.m = m; this.p = profile; this.cpu = m.cpu;
@@ -271,7 +279,7 @@ Scene.prototype.snapshot = function (extra = 53) {
         this.sentTiles.add(g);
         const px = new Uint8Array(256), b = gs + g * 0x100;
         for (let iy = 0; iy < 16; iy++) for (let ix = 0; ix < 16; ix++) px[iy * 16 + ix] = m.mem[b + ((ix & 3) << 2 | ix >> 2) + iy * 16];
-        newTiles.push([g, px]);
+        newTiles.push([g, px, gfxHash(px, 16, 16)]);
       }
     }
     map[ty * cols + tx] = g;
@@ -288,7 +296,7 @@ Scene.prototype.snapshot = function (extra = 53) {
       this.sentSprites.add(k);
       const px = new Uint8Array(img.w * img.h * 2);
       for (let i = 0; i < img.w * img.h; i++) { px[i * 2] = img.idx[i]; px[i * 2 + 1] = img.alpha[i] ? 255 : 0; }
-      newSprites.push({ k, w: img.w, h: img.h, px });
+      newSprites.push({ k, w: img.w, h: img.h, px, hash: gfxHash(px, img.w, img.h) });
     }
     sprites.push({ k, x: s.x - img.hx, y: s.y - img.hy, w: img.w, h: img.h, flash: (s.flags & 0x100) ? 1 : 0 });
   }
@@ -319,6 +327,37 @@ Scene.prototype.snapshot = function (extra = 53) {
   const status = new Uint8Array(orig.rgba.buffer.slice(orig.rgba.byteOffset + 320 * rows * 4, orig.rgba.byteOffset + 320 * H * 4));
   const reset = !!this.reset; this.reset = false;
   return { t: f.t, camX: f.camX, camY: f.camY, extra, H, rows, tx0, ty0, cols, trows, map, sprites, newTiles, newSprites, pal, mask, status, overlay, reset };
+};
+
+// Alle Kacheln des aktuellen Levels und alle bisher gesehenen Sprites als Farbindizes (für den Export)
+Scene.prototype.exportGfx = function () {
+  const V = this.p.v, c = this.cpu, m = this.m;
+  const mapBase = this.far(V.map), rowBytes = this.w(V.mapRow), gs = this.far(V.tileBase);
+  if (mapBase === null || gs === null || !rowBytes || !this.frame) return null;
+  const mapCols = rowBytes >> 1, b = this.w(V.bounds + 6) || 2048, mapRows = Math.ceil((b + 200) / 16);
+  const seen = new Set(), hashes = new Set(), tiles = [];
+  const add = (g) => {
+    if (seen.has(g)) return; seen.add(g);
+    const px = new Uint8Array(256), base = gs + g * 0x100;
+    for (let iy = 0; iy < 16; iy++) for (let ix = 0; ix < 16; ix++) px[iy * 16 + ix] = m.mem[base + ((ix & 3) << 2 | ix >> 2) + iy * 16];
+    const hash = gfxHash(px, 16, 16);
+    if (!hashes.has(hash)) { hashes.add(hash); tiles.push({ g, hash, px }); }
+  };
+  // jede Kachel der Karte und jedes Animationsbild aus der Animationstabelle
+  const ids = new Set();
+  for (let y = 0; y < mapRows; y++) for (let x = 0; x < mapCols; x++) ids.add(c.rw(mapBase + y * rowBytes + x * 2) & 0x1ff);
+  for (const id of ids) add(this.tileGfx(id) & 0x7ff);
+  const sprites = [];
+  for (const [k, img] of this.sprites) {
+    const px = new Uint8Array(img.w * img.h * 2);
+    for (let i = 0; i < img.w * img.h; i++) { px[i * 2] = img.idx[i]; px[i * 2 + 1] = img.alpha[i] ? 255 : 0; }
+    const hash = gfxHash(px, img.w, img.h);
+    if (!hashes.has(hash)) { hashes.add(hash); sprites.push({ k, w: img.w, h: img.h, hash, px }); }
+  }
+  // Farben wie im oberen Bildteil (PEL-Maske der ersten Zeile; Wasser nutzt die andere Hälfte der Palette)
+  const p32 = this.m.vga.palette32(), m0 = this.m.vga.rowMask ? this.m.vga.rowMask[0] : 0xff, pal = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) pal[i] = p32[i & m0];
+  return { tiles, sprites, pal: new Uint8Array(pal.buffer) };
 };
 
 export function sceneFor(m) {

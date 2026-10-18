@@ -94,6 +94,8 @@ Seit 18.10.2026 zeichnet im Browser die Grafikkarte das Breitbild:
 - **HD-Modus** („Grafik: HD“): Das Spielfeld wird zuerst in Spielauflösung in einen Zwischenpuffer gezeichnet (Kamera ganzzahlig, 2 Pixel Rand), dann mit xBR-lv2 (Hyllian, MIT) auf Bildschirmgröße hochskaliert; der Bruchteil der interpolierten Kamera verschiebt dabei die Abtastung, so bleibt das Scrollen weich. Statusleiste, Menüs, Titel und Karte laufen durch denselben Skalierer. „Grafik: Pixel“ nimmt den nächsten Nachbarn.
 - **Ohne WebGL2** bleibt der Software-Weg (`compose()`), ebenso für `tools/hd-test.mjs`.
 
+Eigene HD-Grafik (Export, HD-Paket, Umfärben): siehe [HD-PAKET.md](HD-PAKET.md).
+
 ## Was das für HD bedeutet
 
 Pro Bild kann der Emulator vor `draw_sprite_list` eine **Szenenbeschreibung** auslesen: Kamera, Level-Karte, Kachelgrafik und Sprite-Liste mit Bildnummern. Ein WebGL-Renderer kann daraus

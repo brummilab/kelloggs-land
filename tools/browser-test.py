@@ -19,7 +19,7 @@ os.makedirs(out, exist_ok=True)
 root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 srv = subprocess.Popen([sys.executable, os.path.join(root, 'tools/serve.py'), '8799'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
-files = [os.path.join(game, f) for f in os.listdir(game) if f.upper() in ('START.EXE', 'PCKELL.DAT', 'KELLOGG.INI', 'RTM.EXE', 'DPMI16BI.OVL')]
+files = [game] if game.lower().endswith('.zip') else [os.path.join(game, f) for f in os.listdir(game) if f.upper() in ('START.EXE', 'PCKELL.DAT', 'KELLOGG.INI', 'RTM.EXE', 'DPMI16BI.OVL')]
 try:
     with sync_playwright() as p:
         b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'], executable_path='/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None)

@@ -24,6 +24,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994) nach dem Vorbil
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 18.10.2026: Davids ZIP (deutsche DOS-Version, START.EXE 147 200 Bytes, neuer als die Entwicklungskopie) getestet: läuft im Emulator und über die Webseite inkl. Ton bis ins Level. Tastenbelegung laut READ.ME korrigiert (Leertaste/↑ springen, Alt Sonderfunktion, P Pause, Esc Karte).
 - 18.10.2026: Phase 5: Sound Blaster/DMA emuliert. Zwei Fallen gefunden: INI braucht ADR= in Großbuchstaben, Treiber braucht wiederverwendbaren DOS-Speicher für den 64-KB-ausgerichteten DMA-Puffer. Musik und Effekte laufen.
 - 18.10.2026: Phase 3: Browser-Version (Worker, Canvas, Tastatur, ZIP-Import), zeilengenaue VGA, erstes Level spielbar (laufen, springen mit Strg, Flakes sammeln). Artifact veröffentlicht.
 - 18.10.2026: Repo auf GitHub angelegt (privat), erster Push. Phase 1: Spiel zeigt Factor-5-Logo, Kellogg's-Intro, Titelbild (360×480 Mode X) und Hauptmenü. Erkenntnisse in docs/ANALYSE.md.

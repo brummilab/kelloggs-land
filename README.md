@@ -53,14 +53,17 @@ Die Importe beschränken sich auf Speicher (`GlobalAlloc`, `GlobalDOSAlloc` …)
 python3 tools/serve.py
 ```
 
-Dann `http://localhost:8766/web/` öffnen und die eigene Spielkopie wählen (ZIP, einzelne Dateien oder Ordner). Die Dateien bleiben im Browser. Der Ton startet mit der Dateiauswahl, „Ton an/aus“ und der Lautstärkeregler sitzen unter dem Bild.
+Dann `http://localhost:8766/web/` öffnen und die eigene Spielkopie wählen (ZIP, einzelne Dateien oder Ordner). Getestet mit der deutschen DOS-Version (ZIP mit START.EXE, PCKELL.DAT, SETUP.EXE …, START.EXE 147 200 Bytes) und einer älteren Fassung (START.EXE 148 480 Bytes). Die Dateien bleiben im Browser. Der Ton startet mit der Dateiauswahl, „Ton an/aus“ und der Lautstärkeregler sitzen unter dem Bild.
 
-| Taste | Funktion |
+| Taste | Funktion (laut READ.ME des Spiels) |
 |---|---|
-| Pfeiltasten | laufen, Menü, ducken |
-| Strg | springen |
-| Alt | Fähigkeit der Figur |
-| Leertaste / Enter | Titelbild und Menü weiter (im Menü ist Start vorausgewählt) |
+| ← → | laufen |
+| Leertaste, ↑ | springen |
+| ↓ | ducken, nach unten schauen |
+| Alt | Sonderfunktion, Tür öffnen |
+| P | Pause |
+| Esc | zurück zur Karte, ohne ein Leben zu verlieren |
+| Enter | Menü bestätigen (Start ist vorausgewählt), Titelbild mit Leertaste weiter |
 
 ## Ohne Browser testen
 

@@ -21,8 +21,9 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ✅ Read the scene every frame (camera, level map, tiles, sprite list)
 - ✅ Rebuild levels in 16:9 from map and tiles; centre pixel-identical to the original
 - ✅ Capture sprites from their compiled draw code
-- ⬜ Sprites in the side margins before they were ever on screen (render frames off-screen through the game's own draw routine)
-- ⬜ Flash/hit effect (sprite flag `0x100`) and other special draw modes
+- ✅ Sprites in the side margins before they were ever on screen (rendered off-screen through the game's own draw routine, verified pixel-identical)
+- ✅ Flash/hit effect (sprite flag `0x100`) drawn as a colour-FFh silhouette, like the game's set/reset trick
+- ⬜ Check the flash effect and other special draw modes in actual play
 - ⬜ Foreground tiles and draw order checks
 - ⬜ Verify all levels and worlds, boss fights, bonus stages
 - ⬜ Profiles for other game releases (e.g. START.EXE 148,480 bytes)

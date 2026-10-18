@@ -44,8 +44,11 @@ export class Scene {
     m.vgaWrite = (a, v) => {
       if (this.cur && !this.codeSels.has(c.sreg[1])) this.recordWrite(a, v);
       else if (this.cur && this.codeSels.has(c.sreg[1]) && this.cur.started) this.endSprite();
+      if (this.offscreen) return; // Probe-Zeichnen: nichts im echten Bildspeicher ändern
       return vw(a, v);
     };
+    this.offscreen = false;
+    this.failed = new Set();     // Bildnummern, die sich nicht abseits zeichnen ließen
   }
 
   w(o) { return this.cpu.rw(this.ds + o); }
@@ -84,11 +87,14 @@ export class Scene {
     if (this.sprites.has(frame & 0x0fff) || (flags & 0x100) || !this.frame) return;
     const d = this.frameDesc(frame); if (!d || d.w > 128 || d.h > 128) return;
     const V = this.p.v;
-    const sx = x - this.frame.camX - d.hx, sy = y - this.frame.camY - d.hy;
+    // dieselbe Kamera wie draw_sprite selbst (c1c8/c1cc zum Zeitpunkt des Aufrufs)
+    const sx = x - s16(this.w(V.camX)) - d.hx, sy = y - s16(this.w(V.camY)) - d.hy;
     const rows = this.w(V.playRows) || 176;
     if (sx < 0 || sy < 0 || sx + d.w > 320 || sy + d.h > rows) return; // nur vollständig sichtbare Sprites
+    // Startadresse genau wie draw_sprite: Basis + (sy+scrollY)·Zeilenbreite + (sx+scrollX)/4, 16 Bit
+    const pitch = this.w(V.pitch) || 84, col = (sx + this.w(V.scrollX)) & 0xffff, row = (sy + this.w(V.scrollY)) & 0xffff;
     this.cur = { key: frame & 0x0fff, d, sx, sy, idx: new Uint8Array(d.w * d.h), alpha: new Uint8Array(d.w * d.h), n: 0, started: false,
-      scrollX: this.w(V.scrollX), scrollY: this.w(V.scrollY), base: this.w(V.vramBase), pitch: this.w(V.pitch) || 84, ring: this.w(V.ring) };
+      pitch, align: col & 3, di0: (this.w(V.vramBase) + row * pitch + (col >> 2)) & 0xffff };
   }
 
   recordWrite(a, v) {
@@ -96,17 +102,12 @@ export class Scene {
     s.started = true;
     const o = a - 0xa0000; if (o < 0 || o >= 0x10000) return;
     const mask = vga.seq[2] & 0xf;
-    const ringBytes = s.ring || 0x10000;
-    const rel = ((o - s.base) % ringBytes + ringBytes) % ringBytes;
-    const rowAbs = Math.floor(rel / s.pitch), colByte = rel % s.pitch;
-    const ringRows = Math.floor(ringBytes / s.pitch);
-    const ly = ((rowAbs - s.scrollY - s.sy) % ringRows + ringRows) % ringRows;
+    const rel = (o - s.di0) & 0xffff, ly = Math.floor(rel / s.pitch), bx = rel % s.pitch;
     if (ly >= s.d.h) return;
     for (let p = 0; p < 4; p++) {
       if (!(mask & (1 << p))) continue;
-      const px = colByte * 4 + p, W = s.pitch * 4;
-      const lx = ((px - s.scrollX - s.sx) % W + W) % W;
-      if (lx >= s.d.w) continue;
+      const lx = bx * 4 + p - s.align;
+      if (lx < 0 || lx >= s.d.w) continue;
       s.idx[ly * s.d.w + lx] = v; s.alpha[ly * s.d.w + lx] = 1; s.n++;
     }
   }
@@ -116,6 +117,42 @@ export class Scene {
     if (!s || s.n < 4) return;
     this.sprites.set(s.key, { w: s.d.w, h: s.d.h, hx: s.d.hx, hy: s.d.hy, idx: s.idx, alpha: s.alpha });
     this.stats.captured++;
+  }
+
+  // Sprite-Bild abseits zeichnen: die Zeichenroutine des Spiels (draw_sprite) mit einer Position
+  // knapp innerhalb des Bildes aufrufen, ihre Schreibzugriffe mitschneiden und nicht in den
+  // Bildspeicher lassen. Danach CPU, DGROUP und VGA-Register wiederherstellen.
+  renderOffscreen(frame) {
+    const key = frame & 0x0fff;
+    if (this.sprites.has(key) || this.failed.has(key) || !this.frame) return false;
+    const d = this.frameDesc(key);
+    if (!d || d.w > 300 || d.h > 160) { this.failed.add(key); return false; }
+    const c = this.cpu, m = this.m, vga = m.vga, P = this.p.code;
+    const save = { r: c.r.slice(), sreg: c.sreg.slice(), sbase: c.sbase.slice(), ip: c.ip, flags: c.flags, icount: c.icount, halted: c.halted,
+      seq: vga.seq.slice(), gc: vga.gc.slice(), seqIdx: vga.seqIdx, gcIdx: vga.gcIdx, ds: m.mem.slice(this.ds, this.ds + 0x10000) };
+    const camX = s16(this.w(this.p.v.camX)), camY = s16(this.w(this.p.v.camY));
+    const x = camX + d.hx + 8, y = camY + d.hy + 4;
+    let ok = false;
+    try {
+      this.offscreen = true;
+      c.push16(x & 0xffff); c.push16(y & 0xffff); c.push16(key); c.push16(0);
+      c.push16(save.sreg[1]); c.push16(save.ip);
+      c.loadSeg(1, this.m.segSel[3]); c.ip = P.drawSprite;
+      const sp0 = save.r[4] & 0xffff;
+      for (let n = 0; n < 400000; n++) {
+        if (c.ip === save.ip && c.sreg[1] === save.sreg[1] && c.sp === sp0) { ok = true; break; }
+        c.step();
+      }
+      if (this.cur) this.endSprite();
+    } catch (e) { ok = false; this.cur = null; }
+    this.offscreen = false;
+    c.r.set(save.r); c.sreg.set(save.sreg); for (let i = 0; i < 6; i++) c.sbase[i] = save.sbase[i];
+    c.ip = save.ip; c.flags = save.flags; c.icount = save.icount; c.halted = save.halted;
+    vga.seq.set(save.seq); vga.gc.set(save.gc); vga.seqIdx = save.seqIdx; vga.gcIdx = save.gcIdx;
+    m.mem.set(save.ds, this.ds);
+    if (!ok || !this.sprites.has(key)) { this.failed.add(key); return false; }
+    this.stats.offscreen = (this.stats.offscreen || 0) + 1;
+    return true;
   }
 
   tileGfx(id) {
@@ -164,18 +201,22 @@ export class Scene {
         out[y * W + x] = pal[ci & mask];
       }
     }
-    // Sprites (aus dem Mitschnitt), in Listenreihenfolge
+    // Sprites (aus dem Mitschnitt), in Listenreihenfolge; fehlende Bilder abseits zeichnen lassen
+    let budget = 6;
     for (const s of f.sprites) {
       if ((s.frame & 0xb000) || (s.flags & 0xff)) continue;
+      if (budget > 0 && !this.sprites.has(s.frame & 0x0fff) && !this.failed.has(s.frame & 0x0fff)) { budget--; this.renderOffscreen(s.frame); }
       const img = this.sprites.get(s.frame & 0x0fff);
       if (!img) { this.cutout(out, W, extra, rows, s, orig); continue; }
       const x0 = s.x - f.camX - img.hx + extra, y0 = s.y - f.camY - img.hy;
+      // Bit 8: das Spiel setzt Set/Reset im Grafik-Controller auf FFh, alle Pixel werden Farbe FFh (Aufblitzen)
+      const flash = (s.flags & 0x100) !== 0;
       for (let y = 0; y < img.h; y++) {
         const yy = y0 + y; if (yy < 0 || yy >= rows) continue;
         const mask = vga.rowMask ? vga.rowMask[yy] : 0xff;
         for (let x = 0; x < img.w; x++) {
           const xx = x0 + x; if (xx < 0 || xx >= W) continue;
-          const i = y * img.w + x; if (img.alpha[i]) out[yy * W + xx] = pal[img.idx[i] & mask];
+          const i = y * img.w + x; if (img.alpha[i]) out[yy * W + xx] = pal[(flash ? 0xff : img.idx[i]) & mask];
         }
       }
     }

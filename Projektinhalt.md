@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: Fünftes HD-Motiv im Repo: Bogenfenster (Kacheln 037 Bogen, 045 Scheiben, 056 unten mit Sims; groß = 037+045+056, klein = 037+056), von David abgenommen nach Nachbesserung (alle 4 Querstreben wie im Original, Seitenrahmen aus Holzblöcken). Skript tools/hd-art/window.py.
 - 19.10.2026: Blätterreihe überarbeitet (Davids Hinweis: im Original hat jedes Blatt Struktur, im Entwurf sahen alle gleich aus). Jetzt jedes Blatt eigene Größe, Neigung, Ader, eigene Sprenkel; Blätter dahinter deutlicher. David: „viel besser“, in web/hd ersetzt.
 - 19.10.2026: Viertes HD-Motiv im Repo: Steinsäulen/Mauer (17 Kacheln: 022–026, 029–033, 069–074, 077), von David abgenommen (kräftigere Fassung). Skript tools/hd-art/masonry.py: erkennt jeden Stein (Pixel zwischen den Fugen) im ganzen Level, zeichnet ihn mit runden Ecken, sauberen Fugen, heller Kante, dunkler Schattenkante und leichter Maserung neu; Hell-Dunkel-Verteilung der Säule vom Original.
 - 19.10.2026: Drittes HD-Motiv im Repo: Blätterreihe am Boden (Kacheln 063–067, Muster wiederholt sich alle 32 Pixel), von David abgenommen. Skript tools/hd-art/leaves.py. Vergleichsbilder (Motiv + Level-Ausschnitt) mit tools/hd-art/compare.py; David will zu jedem Motiv die Vergleiche sehen.

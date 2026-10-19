@@ -7,6 +7,7 @@ import json, os, sys
 import numpy as np
 from scipy import ndimage
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 BLACK=(0,0,0); SKY=(0,109,238); WHITE=(238,238,238); YEL=(238,238,93); OCH=(206,157,60); BRN=(141,76,0)
 DBRN=(76,28,0); LIME=(141,238,0); GREEN=(0,174,0); DGREEN=(28,93,28)
@@ -72,6 +73,28 @@ if __name__ == '__main__':
                 sc = sum(grid[y + dy][x + dx] in TILES for dy in (-1, 0, 1) for dx in (-1, 0, 1))
                 if i not in best or sc > best[i][0]: best[i] = (sc, x, y)
     made = {}
+    if os.environ.get('LEAFSTYLE', '1') == '1':
+        # leaves in the style of the leaf row: the whole climbing-plant wall is drawn at once, so a leaf that
+        # crosses a tile edge is the same leaf in both tiles; every tile is cut from the inside of that area
+        import leafstyle
+        X0, Y0, X1, Y1 = 191, 10, 207, 25
+        C = np.zeros(((Y1 - Y0) * 16, (X1 - X0) * 16, 3), np.uint8)
+        for y in range(Y0, Y1):
+            for x in range(X0, X1):
+                j = grid[y][x]
+                C[(y - Y0) * 16:(y - Y0 + 1) * 16, (x - X0) * 16:(x - X0 + 1) * 16] = tiles[j] if j >= 0 else 0
+        hd = leafstyle.draw_leaves(redraw(C), leafstyle.find_leaves(C))
+        pick = {}
+        for y in range(Y0 + 1, Y1 - 1):
+            for x in range(X0 + 1, X1 - 1):
+                i = grid[y][x]
+                if i in TILES:
+                    sc = sum(grid[y + dy][x + dx] in TILES for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+                    if i not in pick or sc > pick[i][0]: pick[i] = (sc, x, y)
+        for i, (_, x, y) in pick.items():
+            made[i] = Image.fromarray(hd[(y - Y0) * 64:(y - Y0 + 1) * 64, (x - X0) * 64:(x - X0 + 1) * 64])
+            made[i].save(os.path.join(out, f"t_{d['tiles'][i]['hash']}.png"))
+        best = {}
     for i, (_, tx, ty) in best.items():
         M = 1                                          # one tile of context around
         C = np.zeros(((2 * M + 1) * 16, (2 * M + 1) * 16, 3), np.uint8)

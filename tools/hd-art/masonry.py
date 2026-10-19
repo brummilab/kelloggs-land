@@ -9,7 +9,8 @@ import numpy as np
 from scipy import ndimage
 from PIL import Image
 
-WALL = [22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 69, 70, 71, 72, 73, 74, 77]
+WALL = [22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 69, 70, 71, 72, 73, 74, 77,
+        126, 127, 136, 137]   # second row: plain masonry wall
 BLACK, WHITE, YEL, OCH, BRN, DBRN, SKY = (0,0,0), (238,238,238), (238,238,93), (206,157,60), (141,76,0), (76,28,0), (0,109,238)
 RAMP = [WHITE, YEL, OCH, BRN, DBRN, BLACK]  # light -> dark
 STONE = {WHITE, YEL, OCH, BRN}

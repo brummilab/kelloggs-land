@@ -26,7 +26,7 @@ import org.json.JSONObject;
  * handed to the Android installer. All releases are signed with the same test key, so they install over each other.
  */
 final class Updater {
-    private static final String RELEASES = "https://api.github.com/repos/brummilab/kelloggs-land/releases?per_page=10";
+    private static final String RELEASES = "https://api.github.com/repos/brummilab/kelloggs-land/releases?per_page=100";
     private static final Pattern TAG = Pattern.compile("^v0\\.(\\d+)-test$");
     private final Activity act;
 

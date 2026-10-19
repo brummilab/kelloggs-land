@@ -19,11 +19,11 @@ def moss_len(u):
     """how far the moss hangs down at u: several tufts of different length"""
     t = u % 16
     tufts = [(1.2, 1.6, 2.2), (4.0, 2.2, 3.4), (7.3, 1.5, 1.6), (9.8, 2.0, 2.9), (13.0, 2.4, 3.8), (15.6, 1.2, 1.4)]
-    L = 3.6
+    L = 4.4
     for (c, w, extra) in tufts:
         for cc in (c - 16, c, c + 16):
             dx = (t - cc) / w
-            if abs(dx) < 1: L = max(L, 3.6 + extra * math.sqrt(1 - dx * dx))
+            if abs(dx) < 1: L = max(L, 4.4 + extra * math.sqrt(1 - dx * dx))
     return L
 
 DROPS = [(2.0, 7.4, 0.42), (4.6, 8.6, 0.38), (5.6, 10.3, 0.3), (8.6, 6.4, 0.36), (10.5, 8.1, 0.4),
@@ -37,13 +37,17 @@ def moss(u, v):
         if v < 2.0: return GREEN if noise(int(u * 2) * 7 + int(v * 2), 4) > 0.2 else DGREEN
         # tuft shading: light in the middle of a tuft, green at its edges and lower end
         dl = moss_len(u + 0.4) - moss_len(u - 0.4)
-        if v > L - 0.6: return GREEN
+        if v > L - 0.6: return LIME if (int(u * 2) + int(v * 2)) % 2 else GREEN
         if dl > 0.5: return GREEN                      # left flank (rising edge) in shadow
         return LIME if noise(int(u * 2) * 13 + int(v * 2), 5) > 0.12 else GREEN
-    for (x, y, r) in DROPS:
-        for xx in (x - 16, x, x + 16):
-            d = math.hypot(u % 16 - xx, v - y)
-            if d < r: return LIME if d < r * 0.6 or v < y else GREEN
+    # soft fade into the plaster: small moss dots on a half-pixel grid, fewer and fewer further down
+    f = (v - L) / 8.0
+    if f < 1:
+        i, j = int(u * 2), int(v * 2)
+        p = 0.75 * (1 - f) ** 1.3
+        if (i + j) % 2 == 0 and noise(i * 977 + j * 131, 6) < p:
+            return LIME if f < 0.55 or noise(i * 31 + j, 7) < 0.5 else GREEN
+        if f < 0.25 and noise(i * 577 + j * 71, 8) < p * 0.5: return GREEN
     return None
 
 # ---- corner stones and posts ----
@@ -119,7 +123,8 @@ def tile_colour(n, u, v):
     if n == 27: return moss(u, v) or WHITE
     if n == 44:
         c = left_post(u, v, 8.0) if v > 2.6 else (BRN if u < 0.8 else None)
-        if c and v > 2.6 and u >= 1.6 and v < 8.0: c = None        # no short stone under the moss
+        if c and v > 2.6 and u >= 1.6 and v < 8.0: c = None
+        if c is None and v > 3.7: c = stone(u, v, 1.6, 2.6, 4.6, 7.4, 'L')   # small stone, its top under the moss
         return c or moss(u, v) or WHITE
     if n == 28:
         if u > 15.2: return DBRN

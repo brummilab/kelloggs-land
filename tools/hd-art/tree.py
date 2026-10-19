@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from foliage import redraw, WOOD, LEAF
+import math
 
 WHITE=(238,238,238); YEL=(238,238,93)
 REDS = {(238, 93, 109), (157, 0, 0), (222, 157, 238), (190, 125, 206)}
@@ -18,6 +19,138 @@ AREAS = [  # (x0, y0, x1, y1) in map tiles, tiles to write
                         150, 156, 161, 162}),
     ((195, 24, 203, 31), {96, 97, 98, 99, 101, 102, 103, 104, 115, 116, 117, 118, 128, 129, 130, 131}),
 ]
+
+BLACK=(0,0,0); OCH=(206,157,60); BRN=(141,76,0); DBRN=(76,28,0)
+LIME=(141,238,0); GREEN=(0,174,0); DGREEN=(28,93,28)
+
+def noise(i, j, seed=0):
+    h = (int(i) * 374761393 + int(j) * 668265263 + seed * 2246822519) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
+    return (h ^ (h >> 16)) / 0xffffffff
+
+def seg(u, v, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    t = max(0.0, min(1.0, ((u - ax) * dx + (v - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(u - ax - t * dx, v - ay - t * dy), t
+
+# trunk geometry in original pixels of area 1 (origin = map tile (10, 19)), measured from the original
+TL, TR = 105.5, 140.0                       # left / right edge of the trunk
+HOLE = (121.8, 205.0, 4.0, 8.0)            # knot hole: centre, half width, half height
+BRANCH = [((106.0, 205.0), (89.0, 201.5), 2.6, 1.3), ((89.0, 201.5), (84.5, 195.5), 1.1, 0.4),
+          ((90.0, 201.0), (80.5, 200.0), 0.9, 0.3)]
+
+def trunk_edges(v):
+    l = TL - max(0.0, 184.0 - v) * 0.75       # widens into the crown at the top
+    r = TR + max(0.0, v - 310.0) * 0.55       # root flare at the bottom
+    return l, r
+
+def trunk(u, v):
+    """smooth, round trunk lit from the left: dark outline, ochre, wide white bark with ochre marks, ochre,
+    brown, dark brown with fine dither, black on the shadow side"""
+    for (a, b, w0, w1) in BRANCH:
+        d, t = seg(u, v, a[0], a[1], b[0], b[1])
+        w = w0 + (w1 - w0) * t
+        if d < w:
+            side = (v - (a[1] + (b[1] - a[1]) * t))
+            if d > w - 0.35: return DBRN
+            return (238, 238, 238) if side < -w * 0.3 else OCH if side < w * 0.2 else BRN
+    if v < 170: return None
+    l, r = trunk_edges(v)
+    if not (l <= u <= r): return None
+    cx, cy, rx, ry = HOLE
+    dh = math.hypot((u - cx) / rx, (v - cy) / ry)
+    if dh < 1.0:
+        if dh < 0.72: return BLACK if dh < 0.6 or (u < cx) else DBRN
+        return (238, 238, 238) if (u > cx and v > cy - 2) else OCH if u > cx else DBRN
+    t = (u - l) / (r - l)
+    t += 0.035 * math.sin(v * 0.33 + 7.0 * noise(int(u * 1.5), 0, 3))          # wavy bark ridges
+    mark = noise(int(u * 2), int(v / 1.6), 5)                                    # vertical bark marks
+    if t < 0.03: return DBRN
+    if t < 0.08: return BRN
+    if t < 0.14: return OCH
+    if t < 0.43: return OCH if mark < 0.13 else (238, 238, 238)
+    if t < 0.56: return BRN if mark < 0.10 else OCH
+    if t < 0.70: return DBRN if mark < 0.14 else BRN
+    if t < 0.86:
+        return BLACK if mark < 0.10 else (DBRN if (int(u * 2) + int(v * 2)) % 2 else BRN)
+    return BLACK if (int(u * 2) + int(v * 2)) % 2 else DBRN
+
+def overlay_trunk(hd, C, x0, y0):
+    """draw the trunk over the redraw of area 1; leaves (and the house, whose tiles are not written) stay in front"""
+    H, W = hd.shape[:2]
+    leaf = {LIME, GREEN, DGREEN}
+    for y in range(H):
+        v = (y + 0.5) / 4
+        if v < 160: continue
+        for x in range(W):
+            u = (x + 0.5) / 4
+            c = trunk(u, v)
+            if c is None: continue
+            if tuple(hd[y, x]) in leaf and tuple(C[int(v), int(u)]) in leaf: continue
+            hd[y, x] = c
+
+PINK=(238,93,109); DRED=(157,0,0); YELC=(238,238,93); WHITEC=(238,238,238)
+
+# stones of the gateway (left half, x0, y0, x1, y1 in original pixels; mirrored for the right half),
+# measured from the original; the keystone sits in the middle
+GATE_STONES = [(10, 0, 20, 4.5), (21, 0, 32, 4.2),                    # small stones along the top
+               (0, 0, 7.5, 10), (0, 11, 7, 18), (0, 19, 6.5, 27.5), (0, 28.5, 6.8, 37), (0, 38, 6.2, 48),
+               (0, 49, 6.5, 56), (1, 54.5, 10.5, 64),                  # left jamb
+               (8, 5, 24, 11.6), (9.5, 12.8, 24.5, 17.6),              # lintel and the step below it
+               (7, 19, 19.5, 25), (8, 27.5, 18.5, 35), (9, 39, 17.5, 48.5), (3, 44, 11.5, 50.5),
+               (10, 48.5, 17.5, 54.5), (7, 56.5, 20, 63.5)]            # stones beside the door
+KEYSTONE = (24.6, 5.6, 38.8, 16.4)
+
+def stone_lump(u, v, x0, y0, x1, y1):
+    """rounded stone, lit from the top left like a dome; returns a colour or None"""
+    r = min(2.6, (x1 - x0) / 2, (y1 - y0) / 2)
+    qx = max(x0 + r - u, 0, u - (x1 - r)); qy = max(y0 + r - v, 0, v - (y1 - r))
+    d = math.hypot(qx, qy) - r
+    if d > 0: return None
+    if d > -0.45: return DBRN
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    hx, hy = (u - cx) / ((x1 - x0) / 2), (v - cy) / ((y1 - y0) / 2)     # -1..1 across the stone
+    lum = 0.55 - 0.42 * hx - 0.5 * hy - 0.25 * (hx * hx + hy * hy)
+    if math.hypot(hx + 0.35, hy + 0.4) < 0.28: return WHITEC          # glint
+    return WHITEC if lum > 0.85 else YELC if lum > 0.48 else OCH if lum > 0.12 else BRN
+
+def gate(Cg):
+    """stone gateway with the red door (tiles 096-131 of area 2): 64 x 64 original pixels -> 256 x 256.
+    Rounded stones lit from the top left around a dark opening, keystone with a red gem, two pointed red
+    door panels per row with the highlight on the outer side."""
+    S = 4
+    img = np.zeros((64 * S, 64 * S, 3), np.uint8)
+    for y in range(64 * S):
+        for x in range(64 * S):
+            u, v = (x + 0.5) / S, (y + 0.5) / S
+            c = None
+            uu = u if u < 32 else 64 - u                                 # mirrored right half
+            for st in GATE_STONES:
+                c = stone_lump(uu, v, *st) or c
+                if c: break
+            if c is None:
+                k = KEYSTONE
+                # keystone: wide on top, narrowing downwards
+                if k[1] <= v <= k[3]:
+                    w = (k[2] - k[0]) / 2 - max(0, v - 11.5) * 0.9
+                    if abs(u - 31.7) <= w:
+                        c = stone_lump(u, v, 31.7 - w, k[1], 31.7 + w, k[3]) or DBRN
+                        g = math.hypot((u - 31.7) / 2.2, (v - 14.3) / 1.2)
+                        if g < 1: c = BLACK if g > 0.8 else PINK if (u < 31.4 and v < 14.4) else DRED
+            if c is None:
+                c = BLACK if (int(u * 2) + int(v * 2)) % 3 else DBRN    # dark wall / opening
+                # door panels: pointed red lenses, darker dithered red around them
+                for (cx, cy, hw, hh, out) in [(23.8, 28.5, 5.6, 11.2, -1), (39.7, 28.5, 5.6, 11.2, 1),
+                                              (23.8, 61.0, 5.6, 7.5, -1), (39.7, 61.0, 5.6, 7.5, 1)]:
+                    f = abs(u - cx) / hw + ((v - cy) / hh) ** 2
+                    if f < 1:
+                        side = (u - cx) * out
+                        if f > 0.9: c = BLACK
+                        elif f > 0.62: c = DRED if (int(u * 2) + int(v * 2)) % 2 else DBRN
+                        elif side > 0.6 and abs(v - cy) < hh * 0.6: c = PINK
+                        else: c = DRED
+            img[y, x] = c
+    return img
 
 if __name__ == '__main__':
     d = json.load(open(sys.argv[1])); grid = json.load(open(sys.argv[2]))['grid']; out = sys.argv[3]
@@ -31,6 +164,10 @@ if __name__ == '__main__':
                 j = grid[y][x]
                 if j >= 0: C[(y - y0) * 16:(y - y0 + 1) * 16, (x - x0) * 16:(x - x0 + 1) * 16] = tiles[j]
         hd = redraw(C, [WOOD | {WHITE, YEL}, LEAF - {WHITE, YEL}, REDS])
+        if x0 == 10: overlay_trunk(hd, C, x0, y0)
+        if x0 == 195:
+            gx0, gy0 = (197 - x0) * 16, (26 - y0) * 16
+            hd[gy0 * 4:(gy0 + 64) * 4, gx0 * 4:(gx0 + 64) * 4] = gate(None)
         done = set()
         for y in range(y0 + 1, y1 - 1):
             for x in range(x0 + 1, x1 - 1):

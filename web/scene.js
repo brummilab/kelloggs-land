@@ -87,7 +87,11 @@ export class Scene {
     if (idx < 0) return null;
     const base = this.far(V.frames); if (base === null) return null;
     const d = base + idx * 0x2c, c = this.cpu;
-    return { w: c.rw(d), h: c.rw(d + 2), hx: s16(c.rw(d + 8)), hy: s16(c.rw(d + 10)) };
+    // Kennung der Bildbeschreibung: ändert sich, wenn das Spiel andere Grafik unter dieselbe Bildnummer legt
+    // (z. B. beim Wechsel der Spielfigur); dann muss das Bild neu mitgeschnitten werden
+    let sig = 0x811c9dc5;
+    for (let i = 0; i < 0x2c; i += 2) { sig ^= c.rw(d + i); sig = Math.imul(sig, 0x01000193) >>> 0; }
+    return { w: c.rw(d), h: c.rw(d + 2), hx: s16(c.rw(d + 8)), hy: s16(c.rw(d + 10)), sig };
   }
 
   // draw_sprite(x, y, frame, flags) – Pascal-Aufruf: x zuerst gepusht (oben), flags direkt über der Rücksprungadresse
@@ -95,8 +99,9 @@ export class Scene {
     const c = this.cpu, sp = c.sbase[2] + c.sp;
     const flags = c.rw(sp + 4), frame = c.rw(sp + 6), y = s16(c.rw(sp + 8)), x = s16(c.rw(sp + 10));
     if (this.cur) this.endSprite();
-    if (this.sprites.has(frame & 0x0fff) || (flags & 0x100) || !this.frame) return;
+    if ((flags & 0x100) || !this.frame) return;
     const d = this.frameDesc(frame); if (!d || d.w > 128 || d.h > 128) return;
+    if (this.fresh(frame & 0x0fff, d)) return;
     const V = this.p.v;
     // dieselbe Kamera wie draw_sprite selbst (c1c8/c1cc zum Zeitpunkt des Aufrufs)
     const sx = x - s16(this.w(V.camX)) - d.hx, sy = y - s16(this.w(V.camY)) - d.hy;
@@ -126,16 +131,26 @@ export class Scene {
   endSprite() {
     const s = this.cur; this.cur = null;
     if (!s || s.n < 4) return;
-    this.sprites.set(s.key, { w: s.d.w, h: s.d.h, hx: s.d.hx, hy: s.d.hy, idx: s.idx, alpha: s.alpha });
+    this.sprites.set(s.key, { w: s.d.w, h: s.d.h, hx: s.d.hx, hy: s.d.hy, idx: s.idx, alpha: s.alpha, sig: s.d.sig });
     this.stats.captured++;
   }
 
   // Sprite-Bild abseits zeichnen: die Zeichenroutine des Spiels (draw_sprite) mit einer Position
   // knapp innerhalb des Bildes aufrufen, ihre Schreibzugriffe mitschneiden und nicht in den
   // Bildspeicher lassen. Danach CPU, DGROUP und VGA-Register wiederherstellen.
+  // Bild im Cache und noch gültig? Sonst (andere Grafik unter derselben Nummer) aus dem Cache nehmen
+  fresh(key, d) {
+    const img = this.sprites.get(key);
+    if (!img) return false;
+    if (!d || img.sig === d.sig) return true;
+    this.sprites.delete(key); this.failed.delete(key);
+    if (this.sentSprites) this.sentSprites.delete(key);
+    return false;
+  }
+
   renderOffscreen(frame) {
     const key = frame & 0x0fff;
-    if (this.sprites.has(key) || this.failed.has(key) || !this.frame) return false;
+    if (this.fresh(key, this.frameDesc(key)) || this.failed.has(key) || !this.frame) return false;
     const d = this.frameDesc(key);
     if (!d || d.w > 300 || d.h > 160) { this.failed.add(key); return false; }
     const c = this.cpu, m = this.m, vga = m.vga, P = this.p.code;
@@ -216,7 +231,7 @@ export class Scene {
     let budget = 6;
     for (const s of f.sprites) {
       if ((s.frame & 0xb000) || (s.flags & 0xff)) continue;
-      if (budget > 0 && !this.sprites.has(s.frame & 0x0fff) && !this.failed.has(s.frame & 0x0fff)) { budget--; this.renderOffscreen(s.frame); }
+      if (!this.fresh(s.frame & 0x0fff, this.frameDesc(s.frame)) && budget > 0 && !this.failed.has(s.frame & 0x0fff)) { budget--; this.renderOffscreen(s.frame); }
       const img = this.sprites.get(s.frame & 0x0fff);
       if (!img) { this.cutout(out, W, extra, rows, s, orig); continue; }
       const x0 = s.x - f.camX - img.hx + extra, y0 = s.y - f.camY - img.hy;
@@ -289,7 +304,7 @@ Scene.prototype.snapshot = function (extra = 53) {
   for (const s of f.sprites) {
     if ((s.frame & 0xb000) || (s.flags & 0xff)) continue;
     const k = s.frame & 0x0fff;
-    if (budget > 0 && !this.sprites.has(k) && !this.failed.has(k)) { budget--; this.renderOffscreen(s.frame); }
+    if (!this.fresh(k, this.frameDesc(k)) && budget > 0 && !this.failed.has(k)) { budget--; this.renderOffscreen(s.frame); }
     const img = this.sprites.get(k);
     if (!img) continue;
     if (!this.sentSprites.has(k)) {

@@ -28,6 +28,7 @@ function setWide(on) {
 // glActive: 'scene' (Breitbild-Level) oder false (2D-Canvas)
 function setGl(on) {
   if (glActive === on) return;
+  debug.glSwitches = (debug.glSwitches || 0) + 1;
   glActive = on; document.getElementById('stage').classList.toggle('gl', !!on);
 }
 // WebGL: jedes Bildschirmbild zeichnen, im Level mit Zwischenbildern zwischen den Szenen des Spiels

@@ -111,7 +111,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      */
     // Jede Anfrage bekommt einen eigenen Schlüssel; fertig ist sie, sobald „<schlüssel>_status“ gesetzt ist.
     // Fehlersuche: Schritte in die Konsole von LibreSprite schreiben (DEBUG = false schaltet es ab)
-    const DEBUG = true;
+    const DEBUG = false;
     let _dbgCount = 0;
     function _dbg(msg) { if (DEBUG && _dbgCount++ < 60) global.console.log('[mcp] ' + msg); }
     // In LibreSprite 1.3 kommen app.yield-Ereignisse nicht beim Skript an. Deshalb: setTimeout, wenn
@@ -140,9 +140,9 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         for (let i = 0; i < _pending.length; i++) {
             const p = _pending[i];
             const status = storage.get(p.key + '_status');
-            if (p.tries % 30 === 0) _dbg('warte ' + p.key + ' status=' + status + ' versuch=' + p.tries);
+            if (p.tries % 600 === 0) _dbg('warte ' + p.key + ' status=' + status + ' versuch=' + p.tries);
             if (status !== undefined && status !== null && status !== '') done.push({ p: p, status: status });
-            else if (++p.tries > 600) done.push({ p: p, status: 0 });
+            else if (++p.tries > 1e9) done.push({ p: p, status: 0 });   // der Server hält Abfragen offen, bis ein Befehl kommt
             else still.push(p);
         }
         _pending = still;

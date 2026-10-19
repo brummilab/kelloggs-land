@@ -123,7 +123,9 @@
   .tbtn.small { border-radius: 10px; font-size: 12px; }
   body.app #drop { background: #000; color: #fff; }
   body.app #drop .buttons, body.app #drop .files { display: none; }
+  [hidden] { display: none !important; }
   #tapstart { display: none; }
+  body.app #resumebox { display: none; }
   body.app #tapstart { display: inline-flex; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -148,6 +150,10 @@
         </div>
         <p class="files">Nötig: START.EXE · PCKELL.DAT &nbsp;·&nbsp; oder einfach hierher ziehen</p>
         <button id="tapstart" class="btn" type="button">Tippen zum Starten</button>
+        <div id="resumebox" class="buttons" hidden>
+          <button id="resume" class="btn" type="button">Weiterspielen</button>
+          <button id="forget" class="btn secondary" type="button">Gespeicherte Kopie vergessen</button>
+        </div>
       </div>
       <div id="touch" aria-hidden="true">
         <div class="tbtn" data-scan="75" style="left:3vw;bottom:14vh;width:15vh;height:15vh">◀</div>

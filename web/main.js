@@ -104,6 +104,7 @@ function startFiles(files) {
     setStatus(`Es fehlt: ${missing.join(', ')}. Wähle den entpackten Spielordner oder die ZIP-Datei mit diesen Dateien.`, 'error');
     return;
   }
+  if (!APP) saveGame(files);
   let hiscore = null;
   try { const s = localStorage.getItem('kelloggs-hiscore'); if (s) hiscore = Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0)); } catch {}
   started = true;
@@ -224,3 +225,35 @@ if (APP) {
   }
   $('twide').addEventListener('pointerdown', (e) => { e.preventDefault(); if (!$('wide').disabled) setWide(!wideOn); });
 }
+
+// ---------------------------------------------------------------- Spielkopie im Browser merken (nur Website)
+// Nach dem ersten Laden bleibt die eigene Spielkopie in diesem Browser (IndexedDB) gespeichert, beim nächsten
+// Besuch reicht ein Klick auf „Weiterspielen“. Die Dateien verlassen den Browser nie.
+function gameDb() {
+  return new Promise((ok, err) => {
+    const r = indexedDB.open('kelloggs-game', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => ok(r.result); r.onerror = () => err(r.error);
+  });
+}
+async function saveGame(files) {
+  try {
+    const db = await gameDb(), tx = db.transaction('files', 'readwrite');
+    tx.objectStore('files').put(files, 'copy');
+  } catch {}
+}
+async function loadGame() {
+  try {
+    const db = await gameDb();
+    return await new Promise((ok) => { const r = db.transaction('files').objectStore('files').get('copy'); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); });
+  } catch { return null; }
+}
+if (!APP) loadGame().then((files) => {
+  if (!files || !NEEDED.every((n) => files[n])) return;
+  $('resumebox').hidden = false;
+  $('resume').addEventListener('click', () => { if (!soundOn) setSound(true); startFiles(files); });
+  $('forget').addEventListener('click', async () => {
+    try { const db = await gameDb(); db.transaction('files', 'readwrite').objectStore('files').delete('copy'); } catch {}
+    $('resumebox').hidden = true;
+  });
+});

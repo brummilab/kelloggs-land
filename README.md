@@ -6,7 +6,7 @@ A browser port of **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advert
 
 The original `START.EXE` runs unmodified on a small emulated PC written in JavaScript. Because the real game code runs, controls, enemies and levels behave exactly like the original. On top of that, the game's own scene data (camera, level map, tiles, sprites) is read every frame and redrawn, so the levels can be shown in 16:9 widescreen.
 
-**Play online:** [brummilab.github.io/kelloggs-land](https://brummilab.github.io/kelloggs-land/) (bring your own copy of the game as ZIP or folder; it never leaves your browser).
+**Play online:** [brummilab.github.io/kelloggs-land](https://brummilab.github.io/kelloggs-land/) (bring your own copy of the game as ZIP or folder; it never leaves your browser and is remembered there, so next time *Weiterspielen* starts it with one click).
 
 **Android:** test app with the game built in, full screen with touch controls: see [Releases](../../releases) (internal testing only).
 
@@ -22,7 +22,7 @@ For the internal Android test build, `gamedata/` holds the maintainer's own copy
 
 `android/` wraps the browser version in a full-screen WebView (landscape, back key = Esc) with touch controls: d-pad, *Sprung* (Space), *Aktion* (Alt), *OK* (Enter), *Pause*, *Esc* and a 16:9 toggle. The game files from `gamedata/` are built in, so the app starts with one tap.
 
-- Every push to `android/`, `web/` or `gamedata/` builds the app (workflow *Android*) and puts `KelloggsLand-test.apk` on the branch `android-build`; tested versions are published as [releases](../../releases).
+- Every push to `android/`, `web/` or `gamedata/` builds the app (workflow *Android*) and puts `KelloggsLand-test.apk` on the branch `android-build`; tested versions are published as [releases](../../releases) with the workflow *Release* (Actions → Release → Run workflow, enter a version).
 - Install: copy the APK to the phone and open it (allow installing from this source once). It is signed with a debug key, so Play Protect may warn.
 - Without `gamedata/`, `tools/android/pack.py` adds a local game copy to an unsigned build and signs it.
 

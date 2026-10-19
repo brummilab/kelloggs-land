@@ -116,6 +116,11 @@ def slope_leaves(hd, x0, y0):
     for k in range(X0S // 32 - 3, X1S // 32 + 3):
         for lf in leaves.LEAVES:
             Xc = k * 32 + lf['c'][0]
+            # on the slope itself the leaves point both ways, like in the original: the small middle leaf and the
+            # back leaves point down to the right (the flat leaf row at both ends stays as it is)
+            if X0S + 12 < Xc < X1S - 12 and (lf.get('seed') == 2 or lf.get('back')):
+                (cx, cy), (tx, ty) = lf['c'], lf['tip']
+                lf = dict(lf, tip=(cx + (cx - tx) + 0.8, ty - 0.4), bend=-lf.get('bend', 0))
             items.append((k * 32, off(Xc), lf))
     for (dx, dy, lf) in items:                         # in the order of leaves.LEAVES (back leaves first)
         (cx, cy), r, (tx, ty) = lf['c'], lf['r'], lf['tip']

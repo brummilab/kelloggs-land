@@ -89,16 +89,18 @@ def main():
             # shadow edge, and a light stone grain (small pits) on the flat body
             if area >= 12:
                 dist = ndimage.distance_transform_edt(mb)
-                white = np.all(out_c == np.array(WHITE, np.uint8), axis=2)
-                out_c[white & (dist > 2.2)] = YEL if body != WHITE else WHITE
                 gy, gx = np.gradient(ndimage.gaussian_filter(dist, 1.0)); nrm = np.hypot(gx, gy) + 1e-6
                 facing = (-gx / nrm) * -0.7071 + (-gy / nrm) * -0.7071
-                cur = [tuple(v) for v in out_c[(dist <= 1.2) & (facing < -0.5)]]
-                sel = (dist <= 1.2) & (facing < -0.5)
+                # crisp light rim on the lit side: one step brighter than what is there
+                rim = (dist <= 1.8) & (facing > 0.45)
+                for yy, xx in zip(*np.nonzero(rim)):
+                    c = tuple(out_c[yy, xx])
+                    if c in (YEL, OCH, BRN): out_c[yy, xx] = RAMP[RAMP.index(c) - 1]
+                sel = (dist <= 1.6) & (facing < -0.45)
                 for yy, xx in zip(*np.nonzero(sel)):
-                    c = tuple(out_c[yy, xx]); out_c[yy, xx] = RAMP[min(len(RAMP) - 2, RAMP.index(c) + 1)] if c in RAMP else c
+                    c = tuple(out_c[yy, xx]); out_c[yy, xx] = RAMP[min(len(RAMP) - 2, RAMP.index(c) + 2)] if c in RAMP else c
                 rng = np.random.default_rng(k * 7919 + 13)
-                pits = (rng.random(mb.shape) < 0.012) & (dist > 4)
+                pits = (rng.random(mb.shape) < 0.008) & (dist > 4)
                 pits = ndimage.binary_dilation(pits, structure=np.array([[0,0,0],[0,1,1],[0,0,0]]))
                 for yy, xx in zip(*np.nonzero(pits)):
                     c = tuple(out_c[yy, xx])

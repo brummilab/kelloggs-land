@@ -93,8 +93,6 @@ d = ImageDraw.Draw(icon)
 frame(d, (8, 8, 503, 503), 96, 14)
 d.rounded_rectangle((52, 52, 459, 459), 64, fill=NAVY)
 flake(d, 96, 70, 20)
-w = text_width('HD', 14) + 4 * 14
-badge_hd(d, 512 - 64 - w, 512 - 64 - (11 * 14), 14)
 icon.save(os.path.join(root, 'assets/logo.png'))
 
 # Banner 1280x320
@@ -107,10 +105,9 @@ frame(d, (40, 40, 280, 280), 48, 10)
 d.rounded_rectangle((64, 64, 256, 256), 32, fill=NAVY_D)
 flake(d, 80, 72, 10)
 x = pixel_text(d, 330, 70, "KELLOGG'S LAND", 11, GOLD, shadow=RED)
-pixel_text(d, 330, 170, 'HD', 11, PAPER, shadow=RED)
 sub = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf', 26)
-d.text((470, 178), 'Tony & Friends · DOS 1994', font=sub, fill=PAPER)
-d.text((470, 216), 'im Browser · Recomp-Projekt', font=sub, fill=(169, 178, 230))
+d.text((334, 178), 'Tony & Friends · DOS 1994', font=sub, fill=PAPER)
+d.text((334, 216), 'Browser & Android · Recomp-Projekt', font=sub, fill=(169, 178, 230))
 ban.save(os.path.join(root, 'assets/banner.png'))
 # Vorschaubild für GitHub (Settings → Social preview), 1280x640
 soc = Image.new('RGB', (1280, 640), NAVY)
@@ -120,4 +117,13 @@ for i in range(640):
     ds.line([(0, i), (1280, i)], fill=(int(NAVY[0] + 14 * t), int(NAVY[1] + 20 * t), int(NAVY[2] + 50 * t)))
 soc.paste(ban, (0, 160))
 soc.save(os.path.join(root, 'assets/social-preview.png'))
-print('assets/logo.png, assets/banner.png, assets/social-preview.png')
+# Android app icon (legacy + adaptive foreground) from the icon
+res = os.path.join(root, 'android/app/src/main/res')
+for dpi, size in [('mdpi', 48), ('hdpi', 72), ('xhdpi', 96), ('xxhdpi', 144), ('xxxhdpi', 192)]:
+    os.makedirs(os.path.join(res, 'mipmap-' + dpi), exist_ok=True)
+    icon.resize((size, size), Image.LANCZOS).save(os.path.join(res, 'mipmap-' + dpi, 'ic_launcher.png'))
+    fs = size * 108 // 48; inner = int(fs * 0.62)
+    fg = Image.new('RGBA', (fs, fs), (0, 0, 0, 0)); small = icon.resize((inner, inner), Image.LANCZOS)
+    fg.paste(small, ((fs - inner) // 2, (fs - inner) // 2), small)
+    fg.save(os.path.join(res, 'mipmap-' + dpi, 'ic_launcher_foreground.png'))
+print('assets/logo.png, assets/banner.png, assets/social-preview.png, android launcher icons')

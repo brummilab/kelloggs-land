@@ -1,18 +1,30 @@
-<p align="center"><img src="assets/banner.png" alt="Kellogg's Land HD" width="100%"></p>
+<p align="center"><img src="assets/banner.png" alt="Kellogg's Land" width="100%"></p>
 
-# Kellogg's Land HD
+# Kellogg's Land
 
 A browser port of **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advertainment, DOS 1994), on its way to a full recompilation.
 
 The original `START.EXE` runs unmodified on a small emulated PC written in JavaScript. Because the real game code runs, controls, enemies and levels behave exactly like the original. On top of that, the game's own scene data (camera, level map, tiles, sprites) is read every frame and redrawn, so the levels can be shown in 16:9 widescreen.
 
-**Play online:** [brummilab.github.io/kelloggs-land-hd](https://brummilab.github.io/kelloggs-land-hd/) (bring your own copy of the game, it never leaves your browser).
+**Play online:** [brummilab.github.io/kelloggs-land](https://brummilab.github.io/kelloggs-land/) (bring your own copy of the game as ZIP or folder; it never leaves your browser).
+
+**Android:** test app with the game built in, full screen with touch controls: see [Releases](../../releases) (internal testing only).
 
 > **Status:** Playable in the browser with sound. New: **16:9 widescreen** (levels rebuilt from map, tiles and sprites, currently for the German release with a 147,200-byte START.EXE). Still running on the interpreter, graphics still at original resolution. See the [roadmap](ROADMAP.md).
 
-## No game data in this repo
+## Game data
 
-This repository contains **no** game files. You need your own copy (freeware, e.g. `kelloggs.zip`) with `START.EXE`, `PCKELL.DAT`, `RTM.EXE` and `DPMI16BI.OVL`. For local development put them in `game/`, which is listed in `.gitignore`. In the browser, your copy is read locally and never uploaded.
+The public website and the source code contain **no** game files. You need your own copy (freeware, e.g. `kelloggs.zip`) with `START.EXE`, `PCKELL.DAT`, `RTM.EXE` and `DPMI16BI.OVL`. In the browser, your copy is read locally and never uploaded. For local development put them in `game/`, which is listed in `.gitignore`.
+
+For the internal Android test build, `gamedata/` holds the maintainer's own copy (German release). **This repository must therefore stay private**; `gamedata/` is excluded from GitHub Pages (`_config.yml`) and kept byte for byte (`.gitattributes`).
+
+## Android test app
+
+`android/` wraps the browser version in a full-screen WebView (landscape, back key = Esc) with touch controls: d-pad, *Sprung* (Space), *Aktion* (Alt), *OK* (Enter), *Pause*, *Esc* and a 16:9 toggle. The game files from `gamedata/` are built in, so the app starts with one tap.
+
+- Every push to `android/`, `web/` or `gamedata/` builds the app (workflow *Android*) and puts `KelloggsLand-test.apk` on the branch `android-build`; tested versions are published as [releases](../../releases).
+- Install: copy the APK to the phone and open it (allow installing from this source once). It is signed with a debug key, so Play Protect may warn.
+- Without `gamedata/`, `tools/android/pack.py` adds a local game copy to an unsigned build and signs it.
 
 ## What we know about START.EXE
 
@@ -57,7 +69,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 
 ## Playing in the browser
 
-Online: [brummilab.github.io/kelloggs-land-hd](https://brummilab.github.io/kelloggs-land-hd/). Every change to `web/` on `main` is published automatically.
+Online: [brummilab.github.io/kelloggs-land](https://brummilab.github.io/kelloggs-land/). Every change to `web/` on `main` is published automatically (GitHub Pages source: GitHub Actions, only `web/` is published). The website never contains game files: you always pick your own copy.
 
 Locally:
 
@@ -106,7 +118,7 @@ The technical notes in `docs/` are written in German: [ANALYSE.md](docs/ANALYSE.
 
 ## Logo
 
-`assets/logo.png` (icon) and `assets/banner.png` are original pixel graphics made with `python3 tools/make-logo.py`. They deliberately contain neither the Kellogg's lettering nor characters from the game. `assets/social-preview.png` is the GitHub preview image (Settings → Social preview).
+`assets/logo.png` (icon), `assets/banner.png` and the Android launcher icons are original pixel graphics made with `python3 tools/make-logo.py`. They deliberately contain neither the Kellogg's lettering nor characters from the game. `assets/social-preview.png` is the GitHub preview image (Settings → Social preview).
 
 ## Acknowledgements
 

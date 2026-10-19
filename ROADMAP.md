@@ -1,6 +1,6 @@
 # Roadmap
 
-Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress · ⬜ planned
+Where Kellogg's Land stands and what comes next. ✅ done · 🔨 in progress · ⬜ planned
 
 ## Phase 0–3: Running the game ✅
 

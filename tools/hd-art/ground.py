@@ -174,7 +174,7 @@ if __name__ == '__main__':
     T = lambda n: pal[np.array(d['tiles'][n]['px']).reshape(16, 16)]
     grid = [[80, 81], [87, 88], [89, 90]]
     period = np.vstack([np.hstack([T(n) for n in row]) for row in grid])
-    hd = rocks(period, 1)
+    hd = redraw(period, 1)          # chosen by David: rocks kept close to the original (rocks() = rounder variant)
     made = {}
     for r, row in enumerate(grid):
         for c, n in enumerate(row):

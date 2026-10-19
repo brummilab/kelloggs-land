@@ -8,7 +8,7 @@
  * - erste Zeile `///permission net.fetch`: ohne diese Freigabe blockiert LibreSprite 1.3 storage.fetch
  * - Ereignis-Handler zusätzlich ausdrücklich mit setEventHandler setzen
  * - Antworten von storage.fetch nicht nur über das Ereignis „<schlüssel>_fetch“ erkennen, sondern
- *   zusätzlich durch Nachsehen bei jedem Takt (app.yield) und bei jedem anderen Ereignis
+ *   zusätzlich durch Nachsehen bei jedem Ereignis; Takt über setTimeout statt app.yield (kommt in 1.3 nicht an)
  */
 
 // Cache the global context.
@@ -114,6 +114,17 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
     const DEBUG = true;
     let _dbgCount = 0;
     function _dbg(msg) { if (DEBUG && _dbgCount++ < 60) global.console.log('[mcp] ' + msg); }
+    // In LibreSprite 1.3 kommen app.yield-Ereignisse nicht beim Skript an. Deshalb: setTimeout, wenn
+    // vorhanden; sonst sofort weitermachen (die Fertig-Ereignisse von storage.fetch treiben die Schleife).
+    function schedule(event, frames) {
+        if (typeof setTimeout === 'function') { setTimeout(function () { onEvent(event); }, Math.max(1, (frames || 1) * 16)); return; }
+        try { app.yield(event, frames); } catch (e) {}
+        if (event !== '_mcp_wait') _later.push(event);
+    }
+    let _later = [];
+    function _runLater() { while (_later.length) onEvent(_later.shift()); }
+    // ohne setTimeout: aufgeschobene Ereignisse nach dem aktuellen Ereignis abarbeiten
+    function setTimeoutFree() { if (typeof setTimeout !== 'function' && _later.length) { const l = _later; _later = []; for (let i = 0; i < l.length; i++) onEvent(l[i]); } }
     let _reqId = 0;
     let _pending = [];
     function _request(url, args, cb) {
@@ -121,7 +132,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         _dbg('fetch ' + url + ' -> ' + key);
         try { storage.fetch.apply(storage, [url, key].concat(args)); } catch (e) { _dbg('fetch Fehler: ' + e); }
         _pending.push({ key: key, cb: cb, tries: 0 });
-        app.yield('_mcp_wait', 2);
+        schedule('_mcp_wait', 2);
     }
     function _checkPending() {
         const still = [];
@@ -139,7 +150,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
             const d = done[i];
             d.p.cb({ string: storage.get(d.p.key), status: d.status });
         }
-        if (_pending.length) app.yield('_mcp_wait', 2);
+        if (_pending.length) schedule('_mcp_wait', 2);
     }
     function _get(url, cb) {
         _request(url, [], cb);
@@ -207,15 +218,15 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         get(RELAY_SERVER_URL + '/ping', function(data, error) {
             if (error) {
                 connected = false;
-                app.yield("bad_health", POLL_DELAY);
+                schedule("bad_health", POLL_DELAY);
                 return;
             }
             if (data && data.status === 'pong') {
                 connected = true;
-                app.yield("good_health");
+                schedule("good_health");
             } else {
                 connected = false;
-                app.yield("bad_health", POLL_DELAY);
+                schedule("bad_health", POLL_DELAY);
             }
 
         });
@@ -248,7 +259,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
                 _clientLogger('The MCP server was shut down.');
                 connected = false;
                 paintUI();
-                app.yield("bad_health", POLL_DELAY);
+                schedule("bad_health", POLL_DELAY);
                 return;
             }
             if ( !data ) {
@@ -262,7 +273,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
             if (!polling) {
                 return;
             }
-            app.yield("poll", POLL_DELAY);
+            schedule("poll", POLL_DELAY);
         });
     }
 
@@ -354,6 +365,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         // Offene Anfragen bei jedem Ereignis prüfen (Fertig-Ereignisse heißen je nach Version anders)
         if (event !== '_mcp_wait' || _dbgCount < 5) _dbg('Ereignis: ' + event);
         if (_pending.length) _checkPending();
+        if (event !== '_mcp_wait') setTimeoutFree();
         switch (event) {
             case '_mcp_wait':
                 return;
@@ -361,6 +373,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
              * Initialize script.
              */
             case 'init':
+                _dbg('setTimeout=' + typeof setTimeout + ' app.yield=' + typeof app.yield);
                 active = true;
                 checkServerHealth();
                 paintUI();

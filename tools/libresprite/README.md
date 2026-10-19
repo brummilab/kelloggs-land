@@ -4,6 +4,7 @@
 
 Changes:
 - first line `///permission net.fetch`: LibreSprite 1.3 blocks `storage.fetch` without it (a permission dialog appears on the first run)
+- `app.yield` events do not reach the script in 1.3: timing uses `setTimeout` when available, otherwise the `storage.fetch` completion events drive the loop
 - register the handler with `setEventHandler` as well
 - find the global object without `this` (undefined at script level in 1.3)
 - talk to the relay on `127.0.0.1` (the server listens on IPv4 only)

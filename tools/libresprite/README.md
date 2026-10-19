@@ -3,6 +3,8 @@
 `mcp.js` is the remote script of [libresprite-mcp](https://github.com/Snehil-Shah/libresprite-mcp) v0.1.3 (GPL-2.0, © Snehil Shah), adapted so it runs in LibreSprite 1.3. It stays under GPL-2.0; it is not part of this project's MIT-licensed code.
 
 Changes:
+- first line `///permission net.fetch`: LibreSprite 1.3 blocks `storage.fetch` without it (a permission dialog appears on the first run)
+- register the handler with `setEventHandler` as well
 - find the global object without `this` (undefined at script level in 1.3)
 - talk to the relay on `127.0.0.1` (the server listens on IPv4 only)
 - detect `storage.fetch` responses by polling on every tick instead of relying on a fetch event name

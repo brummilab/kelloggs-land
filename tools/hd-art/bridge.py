@@ -98,7 +98,10 @@ def colour(u, v):
             return wood_v(u, x0, x1, v, 3)
     # vines hanging from the top rail (leaf with a yellow tip)
     # every vine reaches the next piece of wood (baluster or post)
-    vines = [(6.4, 15.0, 13.0, 9.5)] + [(26 + 16 * k, 9.5, 32.4 + 16 * k, 15.0) for k in range(4)] + [(90, 9.5, 96.6, 15.0)]
+    # (they start inside the rail and end inside the wood, so both ends sit on the wood)
+    # one vine in every railing field, all hanging the same way; the last one ends on the right post.
+    # (tile 176 repeats along the railing, so each vine's end must also be in the field before: same pattern)
+    vines = [(10 + 16 * k, 8.3, 17.8 + 16 * k, 15.4) for k in range(5)] + [(90, 8.3, 97.8, 15.4)]
     for (ax, ay, bx, by) in vines:
         lx, ly = (bx, by) if by > ay else (ax, ay)            # the leaf hangs at the lower end
         dl = math.hypot((u - lx - 0.6) / 1.5, (v - ly - 0.9) / 1.0)

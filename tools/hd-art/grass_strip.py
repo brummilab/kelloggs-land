@@ -29,7 +29,9 @@ def colour(u, v):
                 t = (2.0 - v) / h                      # 0 at the base .. 1 at the tip
                 if 0 <= t <= 1 and abs(u - (xx + lean * t)) < 0.55 * (1 - t) + 0.08:
                     return YEL if (u < xx + lean * t and t > 0.35) else LIME if t > 0.15 else GREEN
-        return None                                      # sky / background
+        # behind the blades: dark grass like the original's top rows (the tile cannot know what lies above it,
+        # e.g. sky or a wall, so it must not show sky here)
+        return DGREEN if (v > 0.9 or (int(u * 2) % 4) in (0, 3)) else DBRN
     if v < 2.6: return YEL if (int(u * 2) % 5 == 1) else LIME     # sunlit top of the turf
     if v < 4.0: return LIME if noise(int(u * 2) * 7 + int(v * 2), 1) > 0.08 else GREEN
     if v < 5.0: return GREEN if noise(int(u * 2) * 3 + int(v * 2), 2) > 0.3 else DGREEN
@@ -57,7 +59,6 @@ if __name__ == '__main__':
     for y in range(64):
         for x in range(64):
             c = colour((x + .5) / 4, (y + .5) / 4)
-            if c is None: c = pal[orig[(y // 4) * 16 + x // 4]] if y >= 8 else (0, 109, 238)   # behind the blades: sky
             img.putpixel((x, y), c)
     img.save(os.path.join(out, f"t_{d['tiles'][187]['hash']}.png"))
     if len(sys.argv) > 3:

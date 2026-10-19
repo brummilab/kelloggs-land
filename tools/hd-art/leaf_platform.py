@@ -17,7 +17,20 @@ KNOWN = {(0, 0, 0), (238, 238, 238), (238, 238, 93), (206, 157, 60), (141, 76, 0
          (0, 174, 0), (28, 93, 28)}
 # the small back leaf at the right end of the period would reach into the next tile, which is not always the
 # same tile here (093 can be followed by 091, 092 or 094), so the platform leaves it out
-PLEAVES = [l for l in leaves.LEAVES if l['c'][0] < 30]
+# The leaves point both ways: the middle leaf of each half points down to the right. Every leaf stays inside its
+# own 16 px half, so no leaf reaches into a neighbour tile (the tiles of the platform follow each other in
+# different orders).
+def _mirror(l, dx=0.0):
+    (cx, cy), (tx, ty) = l['c'], l['tip']
+    cx += dx
+    return dict(l, c=(cx, cy), tip=(cx + (cx - tx - dx), ty), bend=-l.get('bend', 0))
+PLEAVES = []
+for l in leaves.LEAVES:
+    if l['c'][0] >= 30: continue
+    if l.get('seed') == 2: l = dict(_mirror(l, -2.6), r=3.6, tip=(15.6, 11.6))   # B: points right, fits in 0..16
+    elif l.get('seed') == 1: l = dict(l, c=(5.0, l['c'][1]), r=4.6, tip=(1.6, l['tip'][1]))   # A: inside the tile
+    elif l.get('back') and l['c'][0] < 12: l = _mirror(l)            # back leaf behind A/B: other way too
+    PLEAVES.append(l)
 TILES = {91: 0, 92: 0, 93: 16, 94: 16}      # tile -> x0 in the 32 px period of the leaf row
 
 def tile(px, x0, lv):
@@ -41,9 +54,6 @@ if __name__ == '__main__':
     PAL = [((c & 255), (c >> 8) & 255, (c >> 16) & 255) for c in d['pal']]
     for t, x0 in TILES.items():
         lv = PLEAVES
-        if t == 91:   # left end: the first leaf moves a little to the right so it is not cut at the tile edge
-            lv = [dict(l, c=(l['c'][0] + 1.0, l['c'][1]), r=l['r'] * 0.92, tip=(l['tip'][0] + 1.6, l['tip'][1]))
-                  if l['c'][0] < 6 and not l.get('back') else l for l in PLEAVES]
         if t == 94:   # right end: no leaf of the next period peeks in
             lv = [l for l in PLEAVES if l['c'][0] > 10]
         Image.fromarray(tile(d['tiles'][t]['px'], x0, lv)).save(os.path.join(out, f"t_{d['tiles'][t]['hash']}.png"))

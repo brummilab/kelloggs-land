@@ -9,19 +9,38 @@ import numpy as np
 from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from foliage import redraw, WOOD, LEAF
+import leaves as LV
 
 SKY=(0,109,238); BLACK=(0,0,0); WHITE=(238,238,238); YEL=(238,238,93); OCH=(206,157,60); BRN=(141,76,0)
 DBRN=(76,28,0); LIME=(141,238,0); GREEN=(0,174,0); DGREEN=(28,93,28)
 BLUE=(0,60,141); LBLUE=(125,157,238); LILAC=(222,157,238); PURP=(190,125,206)
 
-def wood_v(u, x0, x1):
-    """vertical wooden bar from x0 to x1: lit left edge, dark right edge"""
-    t = (u - x0) / (x1 - x0)
-    return OCH if t < 0.28 else DBRN if t > 0.8 else BRN
+def noise(i, j, seed=0):
+    h = (int(i) * 374761393 + int(j) * 668265263 + seed * 2246822519) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
+    return (h ^ (h >> 16)) / 0xffffffff
 
-def wood_h(v, y0, y1):
+def grain(c, a, b, seed):
+    """wood grain: short dark streaks along the wood (a = along, b = across, in original pixels) and a few
+    lighter flecks, so the wood is not flat"""
+    k = noise(int(a / 2.2), int(b * 3), seed)
+    if c == BRN and k < 0.16 and (a % 2.2) < 1.6: return DBRN
+    if c == OCH and k < 0.10 and (a % 2.2) < 1.2: return BRN
+    if c == BRN and k > 0.95: return OCH
+    return c
+
+def wood_v(u, x0, x1, v=0.0, seed=1):
+    """vertical wooden bar from x0 to x1: lit left edge, dark right edge, black outline on the right, grain"""
+    t = (u - x0) / (x1 - x0)
+    if t > 0.9: return BLACK
+    c = OCH if t < 0.28 else DBRN if t > 0.72 else BRN
+    return grain(c, v, u, seed)
+
+def wood_h(v, y0, y1, u=0.0, seed=2):
     t = (v - y0) / (y1 - y0)
-    return OCH if t < 0.3 else DBRN if t > 0.78 else BRN
+    if t > 0.9: return BLACK
+    c = OCH if t < 0.3 else DBRN if t > 0.7 else BRN
+    return grain(c, u, v, seed)
 
 def seg(u, v, ax, ay, bx, by):
     dx, dy = bx - ax, by - ay
@@ -45,7 +64,23 @@ def lantern(u, v, cx):
     if math.hypot(u - cx + 1.3, v - 3.3) < 0.75: return WHITE
     return LILAC if (u < cx and v < 6.2) else PURP
 
+LEAFCOL = {LV.LIME, LV.GREEN, LV.DGREEN, LV.YEL, LV.WHITE}
+LEAF_B = [l for l in LV.LEAVES if not l.get('back') and 14 < l['c'][0] < 16]
+
+def leaf_overlap(u, v):
+    """the leaf row continues left and right of the bridge (tiles 066 / 067). A leaf that sticks out over the
+    tile edge would be cut off by the bridge tile, so the bridge tiles draw the rest of it."""
+    if not (32 <= v < 48): return None
+    vp = v - 32
+    if 16 <= u < 21: up = u                     # tile 23 continues the period of tile 22 (066): offset 16
+    elif 75 <= u < 80: up = u - 64              # tile 26 sits where the period starts again (offset 0)
+    else: return None
+    c = LV.period_colour(up, vp, LEAF_B)
+    return c if c in LEAFCOL else None
+
 def colour(u, v):
+    lo = leaf_overlap(u, v)
+    if lo: return lo
     # lanterns and posts
     for (x0, x1) in POSTS:
         cx = (x0 + x1) / 2
@@ -54,10 +89,14 @@ def colour(u, v):
         if x0 <= u <= x1 and 11 <= v <= 32.5:
             if 12.5 <= v <= 15.5 or 28.5 <= v <= 31.5:          # green rings
                 return LIME if u < cx - 0.5 else GREEN if u < x1 - 0.8 else DGREEN
-            return wood_v(u, x0, x1)
+            return wood_v(u, x0, x1, v, 3)
     # vines hanging from the top rail (leaf with a yellow tip)
     vines = [(7.0, 15.0, 13.0, 9.5)] + [(26 + 16 * k, 9.5, 31 + 16 * k, 14.5) for k in range(5)]
     for (ax, ay, bx, by) in vines:
+        lx, ly = (bx, by) if by > ay else (ax, ay)            # the leaf hangs at the lower end
+        dl = math.hypot((u - lx - 0.6) / 1.5, (v - ly - 0.9) / 1.0)
+        if dl < 1:
+            return DGREEN if dl > 0.72 else (LIME if (u - lx) + (v - ly) < 0.6 else GREEN)
         d, t = seg(u, v, ax, ay, bx, by)
         w = 1.0 - 0.3 * t
         if d < w:
@@ -66,24 +105,38 @@ def colour(u, v):
             return YEL if tip else (LIME if d < 0.25 else GREEN)
     # top rail and bottom rail
     if 6.2 < u < 96.8:
-        if 4.2 <= v <= 9.0: return wood_h(v, 4.2, 9.0)
+        for k in range(5):                                            # nails where the balusters are fixed
+            nx = 19.1 + 16 * k
+            for ny in (6.6, 30.1):
+                dn = math.hypot(u - nx, v - ny)
+                if dn < 0.55: return BLACK if dn > 0.25 else DBRN
+        if u < 7.2 or u > 95.8:                                       # end grain against the posts
+            if 4.2 <= v <= 9.0 or 27.8 <= v <= 32.4: return DBRN
+        if 4.2 <= v <= 9.0: return wood_h(v, 4.2, 9.0, u, 4)
         if 9.0 < v <= 9.8: return DBRN if (u % 16) > 1 else BRN       # shadow under the rail
-        if 27.8 <= v <= 32.4: return wood_h(v, 27.8, 32.4)
+        if 27.8 <= v <= 32.4: return wood_h(v, 27.8, 32.4, u, 5)
     # balusters
     for k in range(5):
         x0 = 17 + 16 * k
-        if x0 <= u <= x0 + 4.2 and 9.0 <= v <= 27.8: return wood_v(u, x0, x0 + 4.2)
+        if x0 <= u <= x0 + 4.2 and 9.0 <= v <= 27.8: return wood_v(u, x0, x0 + 4.2, v, 6 + k)
     # arch block (tiles 180-183, 185, 186): x 16..80
     if 16 <= u <= 80 and v >= 32.4:
         cx, cy, a, b = 48.5, 64.5, 28.6, 19.4
         r_in = ((u - cx) / a) ** 2 + ((v - cy) / b) ** 2
         r_out = ((u - cx) / (a + 4.2)) ** 2 + ((v - cy) / (b + 4.2)) ** 2
         if r_in < 1: return SKY                                       # opening
-        if v < 36.0: return wood_h(v, 32.4, 36.0) if v > 32.9 else BLACK   # deck beam
+        if v < 36.0:                                                  # deck beam: planks with joints and nails
+            if v <= 32.9: return BLACK
+            if (u - 16) % 12.5 < 0.45: return BLACK
+            if math.hypot((u - 16) % 12.5 - 1.3, v - 34.2) < 0.4: return BLACK
+            return wood_h(v, 32.4, 36.0, u, 8)
         if r_out < 1 or v > 44.5 and (u < 20.5 or u > 76.5):
             # arch ring: light along the inner edge on the left, dark on the right
             if r_in < 1.12: return OCH if u < cx else DBRN
-            return BRN if r_out < 0.96 else DBRN
+            ang = math.atan2(v - cy, u - cx)
+            if (ang * 9.0) % 1.0 < 0.06: return BLACK                     # joints between the arch planks
+            c = BRN if r_out < 0.96 else DBRN
+            return grain(c, ang * 30, r_in * 6, 9)
         # carved panels with a groove frame and a carved light line following the arch
         if 45.6 <= u <= 51.4: return wood_v(u, 45.6, 51.4)               # middle post between the panels
         px0, px1 = (20.6, 45.6) if u < 45.6 else (51.4, 76.4)

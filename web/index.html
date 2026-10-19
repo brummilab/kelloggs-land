@@ -108,6 +108,25 @@
   #log { font: 12px/1.5 var(--f-mono); color: var(--muted); background: var(--navy-deep); border-radius: 8px; padding: 10px; max-height: 260px; overflow: auto; white-space: pre-wrap; margin: 10px 0 0; }
   footer { font-size: 12.5px; color: var(--muted); max-width: 75ch; }
   footer a { color: var(--gold); }
+
+  /* App-Modus (Android-App, ?app=1): nur das Spielbild, bildschirmfüllend, mit Touch-Steuerung */
+  body.app { padding: 0; background: #000; overflow: hidden; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; }
+  body.app .wrap { max-width: none; display: block; }
+  body.app header, body.app .bar, body.app .help, body.app details, body.app footer { display: none; }
+  body.app .frame { border: 0; border-radius: 0; padding: 0; box-shadow: none; background: #000; }
+  body.app #stage, body.app #stage.wide { position: fixed; inset: 0; aspect-ratio: auto; border-radius: 0; }
+  body.app canvas { object-fit: contain; }
+  #touch { display: none; }
+  body.app #touch { display: block; position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  .tbtn { position: absolute; pointer-events: auto; display: grid; place-items: center; border-radius: 50%;
+    background: rgba(255, 255, 255, .16); border: 2px solid rgba(255, 255, 255, .35); color: rgba(255, 255, 255, .85);
+    font: 700 15px/1 var(--f-body); touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .tbtn[data-on] { background: rgba(245, 197, 24, .45); border-color: var(--gold); }
+  .tbtn.small { border-radius: 10px; font-size: 12px; }
+  body.app #drop { background: #000; color: #fff; }
+  body.app #drop .buttons, body.app #drop .files { display: none; }
+  #tapstart { display: none; }
+  body.app #tapstart { display: inline-flex; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -130,6 +149,19 @@
           <label class="btn secondary">Spielordner wählen<input id="pickdir" type="file" webkitdirectory multiple></label>
         </div>
         <p class="files">Nötig: START.EXE · PCKELL.DAT &nbsp;·&nbsp; oder einfach hierher ziehen</p>
+        <button id="tapstart" class="btn" type="button">Tippen zum Starten</button>
+      </div>
+      <div id="touch" aria-hidden="true">
+        <div class="tbtn" data-scan="75" style="left:3vw;bottom:14vh;width:15vh;height:15vh">◀</div>
+        <div class="tbtn" data-scan="77" style="left:calc(3vw + 34vh);bottom:14vh;width:15vh;height:15vh">▶</div>
+        <div class="tbtn" data-scan="72" style="left:calc(3vw + 17vh);bottom:30vh;width:15vh;height:15vh">▲</div>
+        <div class="tbtn" data-scan="80" style="left:calc(3vw + 17vh);bottom:2vh;width:13vh;height:13vh">▼</div>
+        <div class="tbtn" data-scan="57" style="right:3vw;bottom:8vh;width:20vh;height:20vh">Sprung</div>
+        <div class="tbtn" data-scan="56" style="right:calc(3vw + 23vh);bottom:4vh;width:15vh;height:15vh">Aktion</div>
+        <div class="tbtn small" data-scan="28" style="right:3vw;top:3vh;width:12vh;height:8vh">OK</div>
+        <div class="tbtn small" data-scan="25" style="right:calc(3vw + 14vh);top:3vh;width:12vh;height:8vh">Pause</div>
+        <div class="tbtn small" data-scan="1" style="left:3vw;top:3vh;width:12vh;height:8vh">Esc</div>
+        <div class="tbtn small" id="twide" style="left:calc(3vw + 14vh);top:3vh;width:12vh;height:8vh">16:9</div>
       </div>
     </div>
   </div>

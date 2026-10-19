@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'at.brummilab.kelloggs'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'at.brummilab.kelloggs'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1-test'
+    }
+    buildTypes { release { minifyEnabled false } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    // the web version (web/, without HD art) is copied into assets/web by the build (task copyWeb);
+    // the game files are NOT part of the repo and are added to assets/game afterwards (tools/android/pack.py)
+    sourceSets { main { assets.srcDirs = ["$buildDir/webassets"] } }
+}
+dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
+tasks.register('copyWeb', Copy) {
+    from("$rootDir/../web") { exclude 'hd/**' }
+    into "$buildDir/webassets/web"
+}
+preBuild.dependsOn copyWeb

@@ -111,7 +111,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      */
     // Jede Anfrage bekommt einen eigenen Schlüssel; fertig ist sie, sobald „<schlüssel>_status“ gesetzt ist.
     // Fehlersuche: Schritte in die Konsole von LibreSprite schreiben (DEBUG = false schaltet es ab)
-    const DEBUG = true;
+    const DEBUG = false;
     let _dbgCount = 0;
     function _dbg(msg) { if (DEBUG && _dbgCount++ < 200) global.console.log('[mcp] ' + msg); }
     // In LibreSprite 1.3 kommen app.yield-Ereignisse nicht beim Skript an. Deshalb: setTimeout, wenn

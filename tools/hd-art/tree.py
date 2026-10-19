@@ -142,8 +142,8 @@ def gate(Cg):
             if c is None:
                 c = BLACK if (int(u * 2) + int(v * 2)) % 3 else DBRN    # dark wall / opening
                 # door panels: pointed red lenses, darker dithered red around them
-                for (cx, cy, hw, hh, out) in [(25.2, 28.5, 5.6, 11.2, -1), (38.3, 28.5, 5.6, 11.2, 1),
-                                              (25.2, 61.0, 5.6, 7.5, -1), (38.3, 61.0, 5.6, 7.5, 1)]:
+                for (cx, cy, hw, hh, out) in [(25.0, 29.0, 6.6, 13.2, -1), (38.5, 29.0, 6.6, 13.2, 1),
+                                              (25.0, 62.0, 6.6, 9.0, -1), (38.5, 62.0, 6.6, 9.0, 1)]:
                     f = abs(u - cx) / hw + ((v - cy) / hh) ** 2
                     if f < 1:
                         side = (u - cx) * out

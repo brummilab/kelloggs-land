@@ -16,7 +16,7 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ✅ AudioWorklet output, volume control
 - ✅ Click suppression at start and between scenes
 
-## Phase 6: Widescreen and HD 🔨
+## Phase 6: Widescreen 🔨
 
 - ✅ Read the scene every frame (camera, level map, tiles, sprite list)
 - ✅ Rebuild levels in 16:9 from map and tiles; centre pixel-identical to the original
@@ -30,12 +30,9 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ⬜ Profiles for other game releases (e.g. START.EXE 148,480 bytes)
 - ✅ WebGL2 renderer (palette, PEL mask, tiles and sprites on the GPU; software fallback)
 - 🔨 Frame interpolation for smoother scrolling (camera and sprites, at the monitor's refresh rate; needs testing on real hardware)
-- ✅ HD mode: sharp-bilinear pixels for the playfield, xBR-lv2 for status bar and info windows (toggle "Grafik: HD / Pixel")
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
-- ✅ Graphics workshop: export tiles and sprites, load hand-made HD packs (4×, recoloured for fades, water and flashes)
-- ✅ Hand-drawn HD art for all level-1 tiles (185 tiles; only the three plain-colour tiles stay as they are): question-mark block, door, leaf row, stone pillars and walls, windows, roof, house wall, ground, grass strip, climbing-plant wall, bridge, cloud, big tree, stone gate, cornflakes, floating leaf platform, slope, grass tufts, shadows in the rock (foliage of the climbing-plant wall and the tree crown redrawn in the style of the leaf row)
-- ✅ Android test app (internal, without HD): WebView with touch controls, game files added locally from your own copy
-- 🚧 Hand-drawn HD art for Tony and the other sprites — tooling ready (`tools/hd-art/tony.py`: 26 own frames, 25 mirrored twins generated automatically); Tony is drawn by hand
+- ⏸ HD graphics: removed from main (19.10.2026), kept on branch `hd`
+- ✅ Android test app (internal): WebView with touch controls, game files added locally from your own copy
 - ⬜ Export of all sprite frames without having seen them in play; animated tiles; menus and status bar replaceable
 
 ## Phase 4: Recompiler ⬜

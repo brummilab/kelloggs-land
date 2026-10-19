@@ -4,7 +4,7 @@
 
 A browser port of **Tony & Friends in Kellogg's Land** (Factor 5 / Rauser Advertainment, DOS 1994), on its way to a full recompilation.
 
-The original `START.EXE` runs unmodified on a small emulated PC written in JavaScript. Because the real game code runs, controls, enemies and levels behave exactly like the original. On top of that, the game's own scene data (camera, level map, tiles, sprites) is read every frame and redrawn, so the levels can be shown in 16:9 widescreen and later in HD.
+The original `START.EXE` runs unmodified on a small emulated PC written in JavaScript. Because the real game code runs, controls, enemies and levels behave exactly like the original. On top of that, the game's own scene data (camera, level map, tiles, sprites) is read every frame and redrawn, so the levels can be shown in 16:9 widescreen.
 
 **Play online:** [brummilab.github.io/kelloggs-land-hd](https://brummilab.github.io/kelloggs-land-hd/) (bring your own copy of the game, it never leaves your browser).
 
@@ -44,13 +44,9 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/sb.js` | Sound Blaster (DSP 2.01) and 8237 DMA controller, timed to the virtual clock | ✅ |
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
-| `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate, HD mode with the xBR-lv2 pixel-art scaler | ✅ |
-| `web/hd/`, `tools/hd-index.py` | HD art shipped with the project (4× PNGs named by content hash), list generated on publish | ✅ (185 tiles, all level-1 tiles except the three plain-colour ones: question-mark block, door, leaf row, stone pillars and walls, windows, roof, house wall, ground, grass strip, climbing-plant wall, bridge, cloud, big tree, stone gate, cornflakes, floating leaf platform, slope, grass tufts, shadows in the rock; all foliage in the style of the leaf row) |
-| `tools/hd-art/` | scripts that draw HD art (shapes + fixed palette), finished in LibreSprite | 🚧 |
-| `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal): WebView around `web/` without HD, full screen with touch controls; CI builds the app without game files, `pack.py` adds your own game copy and signs it | ✅ (test build) |
-| `tools/hd-art/tony.py`, `tools/hd-art/export-sprites.mjs` | Tony sprites (drawn by hand): sprite export from your own game copy, 4× templates with the right ids, check + mirrored versions into `web/hd`, comparison image | ✅ tooling, frames pending |
-| `web/hdpack.js` | graphics workshop: export tiles/sprites as PNG + ZIP, load HD packs (own PNG decoder), keep them in IndexedDB | ✅ |
-| `web/scene.js`, `tools/hd-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
+| `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
+| `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal): WebView around `web/`, full screen with touch controls; CI builds the app without game files, `pack.py` adds your own game copy and signs it | ✅ (test build) |
+| `web/scene.js`, `tools/wide-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |
 | `tools/browser-test.py` | automated test in headless Chromium (Playwright) with a key script | ✅ |
@@ -58,7 +54,6 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `tools/build-site.py` | build a static site into `dist/` | ✅ |
 | `.github/workflows/pages.yml` | publishes `web/` to GitHub Pages | ✅ |
 | `web/translate.js` | translates game code to JavaScript (recompiler), plan: [docs/RECOMPILER.md](docs/RECOMPILER.md) | planned |
-| HD graphics | high-resolution tiles/sprites | planned |
 
 ## Playing in the browser
 
@@ -82,11 +77,7 @@ Then open `http://localhost:8766/web/` and pick your copy of the game (ZIP, sing
 | Esc | back to the map without losing a life |
 | Enter | confirm menu (Start is preselected); Space continues on the title screen |
 
-Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Grafik: HD" shows even, sharp pixels at any window size and smooths the status bar and info windows with the xBR scaler; "Grafik: Pixel" shows plain nearest-neighbour pixels.
-
-## Your own HD graphics (graphics workshop)
-
-Below the game, "Grafik-Werkstatt" exports all tiles of the current level and every sprite seen so far as PNGs (original size and a 4× template), taken from your own copy of the game. Improve the templates in any paint program and load them back as an **HD pack** (folder or ZIP): they replace the originals immediately, at 4× resolution, recoloured automatically for fades, water and hit flashes. Your own packs stay in your browser and are never uploaded. Finished HD art can be added to the project in [`web/hd/`](web/hd/): the page loads it for every player (it can be switched off in the workshop). Guide (German): [docs/HD-PAKET.md](docs/HD-PAKET.md).
+Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars).
 
 ## Testing without a browser
 
@@ -107,7 +98,7 @@ node tools/run.mjs game --seconds 40 --shots 12,20,40 --out out
 
 Sequence in the original: Factor 5 logo (about 6 s), Kellogg's intro (12–20 s), title screen (from about 24 s, continue with Space), hint texts, main menu. Into the first level: `--keys 30:space,40:enter,50:enter,60:space,72:enter,80:enter,85:space`.
 
-Widescreen check: `node tools/hd-test.mjs game out`. Browser test: `python3 tools/browser-test.py game out "wait:30,key:Space,wait:5,shot:a"`. The interpreter manages about 20 million instructions per second, faster than real time (the game needs about 15 million per second).
+Widescreen check: `node tools/wide-test.mjs game out`. Browser test: `python3 tools/browser-test.py game out "wait:30,key:Space,wait:5,shot:a"`. The interpreter manages about 20 million instructions per second, faster than real time (the game needs about 15 million per second).
 
 ## Documentation
 
@@ -119,10 +110,11 @@ The technical notes in `docs/` are written in German: [ANALYSE.md](docs/ANALYSE.
 
 ## Acknowledgements
 
-The HD mode uses a WebGL port of Hyllian's xBR-lv2 shader (MIT, from [libretro/glsl-shaders](https://github.com/libretro/glsl-shaders)); the licence notice is in `web/gl.js`.
 
 The file format analysis by [movAX13h](https://github.com/movAX13h/tony-and-friends-in-kelloggs-land) was the most important groundwork. His code is not part of this repo (no licence). The game was made by Factor 5 and Rauser Advertainment; the characters belong to Kellogg's. This project is not affiliated with any of them.
 
 ## Licence
 
 MIT for this project's own code, see [LICENSE](LICENSE).
+
+The HD graphics work (hand-drawn level-1 tiles, graphics workshop, HD renderer) was removed from `main`; it is kept on the branch [`hd`](../../tree/hd).

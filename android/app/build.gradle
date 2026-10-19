@@ -17,7 +17,7 @@ android {
 }
 dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
 tasks.register('copyWeb', Copy) {
-    from("$rootDir/../web") { exclude 'hd/**' }
+    from("$rootDir/../web")
     into "$buildDir/webassets/web"
 }
 preBuild.dependsOn copyWeb

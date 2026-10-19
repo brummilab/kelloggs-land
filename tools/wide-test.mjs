@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Prüft den Breitbild-Renderer: spielt ins Level 1, setzt Szenen zusammen und vergleicht
 // die Mitte pixelgenau mit dem Originalbild des Emulators.
-//   node tools/hd-test.mjs <spielordner> <ausgabeordner>
+//   node tools/wide-test.mjs <spielordner> <ausgabeordner>
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';

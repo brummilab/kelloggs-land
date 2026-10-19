@@ -85,9 +85,6 @@ onmessage = (e) => {
     audioOn = msg.on; audioChunks = [];
   } else if (msg.type === 'wide') {
     wide = msg.on; gl = !!msg.gl; lastFrame = -1;
-  } else if (msg.type === 'export') {
-    const g = scene && scene.exportGfx();
-    postMessage({ type: 'export', gfx: g });
   } else if (msg.type === 'speed') {
     speed = msg.value;
   }

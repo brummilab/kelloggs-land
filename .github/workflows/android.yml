@@ -1,4 +1,4 @@
-# Builds the Android test app (WebView around web/, without HD art and WITHOUT the game files).
+# Builds the Android test app (WebView around web/, WITHOUT the game files).
 # The game files are added afterwards from your own copy: tools/android/pack.py (they never go into the repo).
 name: Android
 on:

@@ -2,10 +2,9 @@
 
 import { readZip } from './zip.js';
 import { GLRenderer } from './gl.js';
-import { exportPack, readPack, savePackFiles, loadPackFiles, clearPackFiles } from './hdpack.js';
 
 const $ = (id) => document.getElementById(id);
-// App-Modus (Android-App, ?app=1): Spieldateien liegen mit in der App (../game/), Touch-Steuerung, kein HD-Paket
+// App-Modus (Android-App, ?app=1): Spieldateien liegen mit in der App (../game/), Touch-Steuerung
 const APP = new URLSearchParams(location.search).has('app');
 if (APP) document.body.classList.add('app');
 const canvas = $('screen'), ctx = canvas.getContext('2d');
@@ -26,7 +25,7 @@ function setWide(on) {
   if (worker) worker.postMessage({ type: 'wide', on, gl: !!glr });
   if (!on) setGl(false);
 }
-// glActive: 'scene' (Breitbild-Level), 'frame' (Originalbild über den HD-Skalierer) oder false (2D-Canvas)
+// glActive: 'scene' (Breitbild-Level) oder false (2D-Canvas)
 function setGl(on) {
   if (glActive === on) return;
   glActive = on; document.getElementById('stage').classList.toggle('gl', !!on);
@@ -34,18 +33,7 @@ function setGl(on) {
 // WebGL: jedes Bildschirmbild zeichnen, im Level mit Zwischenbildern zwischen den Szenen des Spiels
 function glLoop() {
   if (glActive === 'scene' && glr.draw()) countFrame();
-  else if (glActive === 'frame' && glr.drawFrame(wideOn)) { /* Bildzähler läuft über die Worker-Bilder */ }
   requestAnimationFrame(glLoop);
-}
-// Grafik: HD (xBR-Kantenglättung) oder Pixel (Original-Pixel)
-let gfxMode = 'hd';
-try { gfxMode = localStorage.getItem('kelloggs-gfx') || 'hd'; } catch {}
-if (APP) gfxMode = 'pixel';
-function setGfx(mode) {
-  gfxMode = mode; if (glr) glr.mode = mode;
-  const b = document.getElementById('gfx');
-  if (b) { b.textContent = mode === 'hd' ? 'Grafik: HD' : 'Grafik: Pixel'; b.setAttribute('aria-pressed', mode === 'hd' ? 'true' : 'false'); b.hidden = !glr; }
-  try { localStorage.setItem('kelloggs-gfx', mode); } catch {}
 }
 requestAnimationFrame(glLoop);
 // Zustand für Tests und Fehlersuche (Konsole: kelloggs)
@@ -142,7 +130,6 @@ function onWorker(e) {
   const m = e.data;
   if (m.type === 'frame') {
     countFrame(); loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.w}×${m.h} · Modus ${m.mode.toString(16).toUpperCase()}h`;
-    if (glr && gfxMode === 'hd') { glr.pushFrame(new Uint8Array(m.buf), m.w, m.h); setGl('frame'); return; }
     setGl(false);
     if (off.width !== m.w || off.height !== m.h) { off.width = m.w; off.height = m.h; }
     offCtx.putImageData(new ImageData(new Uint8ClampedArray(m.buf), m.w, m.h), 0, 0);
@@ -153,11 +140,9 @@ function onWorker(e) {
       ctx.fillStyle = '#000'; ctx.fillRect(0, 0, x0, canvas.height); ctx.fillRect(x0 + w43, 0, canvas.width - x0 - w43, canvas.height);
       ctx.drawImage(off, x0, 0, w43, canvas.height);
     } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
-  } else if (m.type === 'export') {
-    exportDone(m.gfx);
   } else if (m.type === 'scene') {
     glr.push(m.scene); setGl('scene');
-    loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.scene.extra ? 'Breitbild' : '4:3'} WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}${glr.pack.size ? ' · HD-Paket' : ''}`;
+    loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.scene.extra ? 'Breitbild' : '4:3'} WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}`;
   } else if (m.type === 'wide-support') {
     const btn = $('wide');
     btn.disabled = !m.on;
@@ -203,8 +188,6 @@ const drop = $('drop');
 drop.addEventListener('drop', (e) => { e.preventDefault(); start(e.dataTransfer.files); });
 
 $('wide').addEventListener('click', () => { setWide(!wideOn); canvas.focus(); });
-$('gfx').addEventListener('click', () => { setGfx(gfxMode === 'hd' ? 'pixel' : 'hd'); canvas.focus(); });
-setGfx(gfxMode);
 setWide(wideOn);
 $('full').addEventListener('click', async () => {
   try { await $('stage').requestFullscreen(); } catch { setStatus('Vollbild ist hier nicht verfügbar.'); }
@@ -216,68 +199,6 @@ $('speed').addEventListener('change', (e) => { if (glr) glr.speed = +e.target.va
 
 // Startbild: Testbild im Spielrahmen
 ctx.fillStyle = '#0b1a63'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// Grafik-Werkstatt: Grafiken exportieren, eigenes HD-Paket laden
-function hdStatus(t) { $('hdstatus').textContent = t; }
-$('hdexport').addEventListener('click', () => {
-  if (!worker) { hdStatus('Erst das Spiel laden und ins Level gehen.'); return; }
-  hdStatus('Sammle Grafiken …'); worker.postMessage({ type: 'export' });
-});
-async function exportDone(gfx) {
-  if (!gfx) { hdStatus('Gerade läuft kein Level. Geh ins Level und versuch es noch einmal.'); return; }
-  try {
-    const blob = await exportPack(gfx, (p) => hdStatus(`Erzeuge PNG-Dateien … ${Math.round(p * 100)} %`));
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kelloggs-grafik.zip'; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    hdStatus(`Exportiert: ${gfx.tiles.length} Kacheln, ${gfx.sprites.length} Sprites (kelloggs-grafik.zip).`);
-  } catch (e) { hdStatus(`Export fehlgeschlagen: ${e.message}`); }
-}
-// Zwei Quellen: das mitgelieferte HD-Paket aus dem Repo (web/hd/) und das eigene aus der Werkstatt.
-// Eigene Bilder gehen vor. Das mitgelieferte lässt sich abschalten.
-let builtinPack = new Map(), userPack = new Map(), builtinOn = true;
-try { builtinOn = localStorage.getItem('kelloggs-hd-builtin') !== '0'; } catch {}
-function applyPacks() {
-  if (!glr) return;
-  const pack = new Map(builtinOn ? builtinPack : []);
-  for (const [k, v] of userPack) pack.set(k, v);
-  glr.loadPack(pack);
-  const count = (p) => { const t = [...p.keys()].filter((k) => k[0] === 't').length; return `${t} Kacheln, ${p.size - t} Sprites`; };
-  const parts = [];
-  if (builtinPack.size) parts.push(`mitgeliefert ${builtinOn ? '' : '(aus) '}${count(builtinPack)}`);
-  if (userPack.size) parts.push(`eigenes ${count(userPack)}`);
-  hdStatus(parts.length ? `HD-Grafik: ${parts.join(' · ')}.` : 'Kein HD-Paket aktiv.');
-  $('hdclear').hidden = !userPack.size;
-  $('hdbuiltin').checked = builtinOn; $('hdbuiltinrow').hidden = !builtinPack.size;
-}
-async function usePack(entries, save) {
-  if (!glr) { hdStatus('HD-Pakete brauchen WebGL2.'); return; }
-  userPack = await readPack(entries);
-  if (save) { try { await savePackFiles(entries); } catch {} }
-  if (!userPack.size) { hdStatus('Keine passenden Dateien gefunden (t_xxxxxxxx.png / s_xxxxxxxx.png).'); }
-  applyPacks();
-}
-// Mitgeliefertes Paket: web/hd/index.json (beim Veröffentlichen von tools/hd-index.py erzeugt)
-async function loadBuiltin() {
-  if (!glr || APP) return;
-  try {
-    const r = await fetch(new URL('./hd/index.json', import.meta.url)); if (!r.ok) return;
-    const names = (await r.json()).files || [];
-    const entries = await Promise.all(names.map(async (n) => [n, new Uint8Array(await (await fetch(new URL('./hd/' + n, import.meta.url))).arrayBuffer())]));
-    builtinPack = await readPack(entries); applyPacks();
-  } catch {}
-}
-async function pickPack(fileList) {
-  hdStatus('Lade HD-Paket …');
-  const entries = [];
-  for (const f of fileList) entries.push([f.webkitRelativePath || f.name, new Uint8Array(await f.arrayBuffer())]);
-  try { await usePack(entries, true); } catch (e) { hdStatus(`HD-Paket ließ sich nicht laden: ${e.message}`); }
-}
-$('hdpick').addEventListener('change', (e) => pickPack(e.target.files));
-$('hdpickdir').addEventListener('change', (e) => pickPack(e.target.files));
-$('hdclear').addEventListener('click', async () => { userPack = new Map(); try { await clearPackFiles(); } catch {} applyPacks(); });
-$('hdbuiltin').addEventListener('change', (e) => { builtinOn = e.target.checked; try { localStorage.setItem('kelloggs-hd-builtin', builtinOn ? '1' : '0'); } catch {} applyPacks(); });
-loadBuiltin();
-loadPackFiles().then((e) => { if (e && e.length) usePack(e, false); }).catch(() => {});
 
 // ---------------------------------------------------------------- App-Modus: Start, Touch-Tasten, Zurück-Taste
 function sendScan(scan, down) { if (worker) worker.postMessage({ type: 'key', down, scan }); }

@@ -81,12 +81,21 @@ def leaf_overlap(u, v):
 def colour(u, v):
     lo = leaf_overlap(u, v)
     if lo: return lo
+    # the top rail lies over the lantern bodies like in the original (its dark end grain on the lantern)
+    if 4.2 <= v <= 9.0 and 4.6 < u < 98.6:
+        if u < 7.4 or u > 95.8: return BLACK if (v > 8.5 or u < 5.0 or u > 98.2) else DBRN
     # lanterns and posts
     for (x0, x1) in POSTS:
         cx = (x0 + x1) / 2
         c = lantern(u, v, cx)
         if c: return c
-        if x0 <= u <= x1 and 11 <= v <= 32.5:
+        # the top rail runs into the post: a wooden bracket fills the corner under the lantern
+        side = 1 if cx < 50 else -1
+        ex = x1 if side > 0 else x0                       # inner edge of the post
+        du = (u - ex) * side                              # distance from the post towards the bridge
+        if -2.2 <= du <= 3.2 and 8.6 <= v <= 11.6 and (v - 8.6) <= 3.0 - max(0, du) * 0.95:
+            return BLACK if (v - 8.6) > 2.6 - max(0, du) * 0.95 else (OCH if v < 9.3 else BRN if du < 1.6 else DBRN)
+        if x0 <= u <= x1 and 9.0 <= v <= 32.5:
             if 12.5 <= v <= 15.5 or 28.5 <= v <= 31.5:          # green rings
                 return LIME if u < cx - 0.5 else GREEN if u < x1 - 0.8 else DGREEN
             return wood_v(u, x0, x1, v, 3)

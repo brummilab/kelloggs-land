@@ -6,6 +6,10 @@
 <title>Kellogg's Land</title>
 <meta name="description" content="Tony &amp; Friends in Kellogg's Land (DOS, 1994) im Browser spielen, mit eigener Spielkopie. Ton, Breitbild 16:9.">
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0c1c66">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
   /* Layout: eine Spalte, das Spielbild steckt im rot-goldenen Rahmen der Menüs aus dem Original. */
@@ -124,6 +128,9 @@
   body.app #drop { background: #000; color: #fff; }
   body.app #drop .buttons, body.app #drop .files { display: none; }
   #appver { font-size: 13px; color: #9aa3c7; margin-top: 10px; }
+  #note { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 6; background: rgba(7, 17, 63, .9);
+    color: #fff; border: 2px solid var(--gold); border-radius: 10px; padding: 6px 14px; font: 600 14px var(--f-body); pointer-events: none; }
+  body.app #note { position: fixed; top: 13vh; }
   [hidden] { display: none !important; }
   #tapstart { display: none; }
   body.app #resumebox { display: none; }
@@ -157,6 +164,7 @@
           <button id="forget" class="btn secondary" type="button">Gespeicherte Kopie vergessen</button>
         </div>
       </div>
+      <div id="note" role="status" hidden></div>
       <div id="touch" aria-hidden="true">
         <div class="tbtn" data-scan="75" style="left:3vw;bottom:14vh;width:15vh;height:15vh">◀</div>
         <div class="tbtn" data-scan="77" style="left:calc(3vw + 34vh);bottom:14vh;width:15vh;height:15vh">▶</div>
@@ -168,6 +176,8 @@
         <div class="tbtn small" data-scan="25" style="right:calc(3vw + 14vh);top:3vh;width:12vh;height:8vh">Pause</div>
         <div class="tbtn small" data-scan="1" style="left:3vw;top:3vh;width:12vh;height:8vh">Esc</div>
         <div class="tbtn small" id="twide" style="left:calc(3vw + 14vh);top:3vh;width:12vh;height:8vh">16:9</div>
+        <div class="tbtn small" id="tsave" style="left:calc(3vw + 28vh);top:3vh;width:14vh;height:8vh">Sichern</div>
+        <div class="tbtn small" id="tload" style="left:calc(3vw + 44vh);top:3vh;width:12vh;height:8vh">Laden</div>
       </div>
     </div>
   </div>
@@ -183,6 +193,8 @@
     <label for="speed">Tempo</label>
     <select id="speed"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
     <button id="wide" type="button" aria-pressed="false" disabled title="Breitbild gibt es bisher nur für die deutsche Version">Breitbild</button>
+    <button id="savestate" type="button" title="Spielstand speichern (F5)">Speichern</button>
+    <button id="loadstate" type="button" title="Spielstand laden (F9)">Laden</button>
     <button id="full" type="button">Vollbild</button>
   </div>
 
@@ -197,6 +209,8 @@
         <dt><kbd>P</kbd></dt><dd>Pause</dd>
         <dt><kbd>Esc</kbd></dt><dd>zurück zur Karte (ohne Leben zu verlieren)</dd>
         <dt><kbd>Enter</kbd></dt><dd>Menü bestätigen</dd>
+        <dt><kbd>F5</kbd> <kbd>F9</kbd></dt><dd>Spielstand speichern, laden</dd>
+        <dt>Gamepad</dt><dd>Steuerkreuz/Stick laufen, A springen, B/X Aktion, Y Pause, Start Enter, Select Esc</dd>
       </dl>
     </div>
     <div>

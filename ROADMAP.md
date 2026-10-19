@@ -32,7 +32,7 @@ Where Kellogg's Land stands and what comes next. ✅ done · 🔨 in progress ·
 - 🔨 Frame interpolation for smoother scrolling (camera and sprites, at the monitor's refresh rate; needs testing on real hardware)
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
 - ⏸ HD graphics: removed from main (19.10.2026), kept on branch `hd`
-- ✅ Android test app (internal; game files in gamedata/, so the repo must stay private): WebView with touch controls, game files added locally from your own copy
+- ✅ Android test app (internal; game files in gamedata/): WebView with touch controls, automatic releases on push, in-app updates
 - ⬜ Export of all sprite frames without having seen them in play; animated tiles; menus and status bar replaceable
 
 ## Phase 4: Recompiler ⬜
@@ -47,9 +47,10 @@ Plan in [docs/RECOMPILER.md](docs/RECOMPILER.md) (German).
 
 ## Phase 7: Polish ⬜
 
-- ⬜ Touch controls and gamepad support
+- ✅ Touch controls (Android app and phone browsers) and gamepad support
 - ⬜ Remappable keys
-- ⬜ Save states
-- ⬜ Settings menu (scaling, widescreen, volume) remembered per browser
-- ⬜ Offline use (installable web app)
+- ✅ Save states (F5/F9, one slot in the browser; verified pixel-identical after restore)
+- ✅ Settings remembered per browser (widescreen, volume, speed)
+- ⬜ Settings menu (scaling, key layout, several save slots)
+- ✅ Offline use (installable web app)
 - ⬜ English UI alongside German

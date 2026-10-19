@@ -57,6 +57,8 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/sb.js` | Sound Blaster (DSP 2.01) and 8237 DMA controller, timed to the virtual clock | ✅ |
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
+| `web/state.js` | save states: the whole machine (memory page by page, CPU, VGA, timer, Sound Blaster, DOS state) as cloneable data, restored into a freshly started machine | ✅ |
+| `web/sw.js`, `web/manifest.webmanifest`, `web/icons/` | installable web app, offline use (network first, cache fallback) | ✅ |
 | `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
 | `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal, private repo only): WebView around `web/`, full screen with touch controls; CI bundles the game files from `gamedata/` (if present) and puts the installable APK on branch `android-build`; without `gamedata/`, `tools/android/pack.py` adds your own copy locally | ✅ (test build) |
 | `web/scene.js`, `tools/wide-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
@@ -89,8 +91,15 @@ Then open `http://localhost:8766/web/` and pick your copy of the game (ZIP, sing
 | P | pause |
 | Esc | back to the map without losing a life |
 | Enter | confirm menu (Start is preselected); Space continues on the title screen |
+| F5 / F9 | save / load the game state (one slot, kept in this browser) |
 
-Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars).
+Below the picture, "Breitbild" switches to 16:9 (applies inside levels; menus are shown centred with black bars). "Speichern" and "Laden" save and restore the complete state of the emulated PC (game in progress, level, position) in this browser's IndexedDB; volume and speed are remembered too.
+
+**Gamepad:** d-pad or left stick walk, A jumps, B/X special action (Alt), Y pause, Start = Enter, Select/Back = Esc.
+
+**Phones and tablets:** on a touch device the page switches to a full-screen view with touch buttons when the game starts (same layout as the Android app, plus *Sichern*/*Laden*).
+
+**Offline:** the page is an installable web app ("Add to home screen"). After the first visit it also works without a network connection; your game copy is already stored in the browser.
 
 ## Testing without a browser
 

@@ -58,6 +58,7 @@ async function setSound(on) {
       await audio.audioWorklet.addModule(new URL('./audio-worklet.js', import.meta.url));
       audioNode = new AudioWorkletNode(audio, 'sb-player', { outputChannelCount: [2] });
       audioNode.connect(audio.destination);
+      audioNode.port.postMessage({ vol: +$('volume').value });
     }
     if (audio) { if (on) await audio.resume(); else await audio.suspend(); }
     soundOn = on;
@@ -117,11 +118,13 @@ function startFiles(files) {
   let hiscore = null;
   try { const s = localStorage.getItem('kelloggs-hiscore'); if (s) hiscore = Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0)); } catch {}
   started = true;
+  touchMode();
   document.body.dataset.state = 'running';
   worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
   worker.onmessage = onWorker;
   worker.postMessage({ type: 'start', files, hiscore });
   worker.postMessage({ type: 'audio', on: soundOn });
+  applySettings();
   setStatus('Läuft. Klick ins Bild, falls die Tasten nicht reagieren.');
   canvas.focus();
 }
@@ -170,6 +173,12 @@ function onWorker(e) {
     $('log').textContent += '\nFEHLER: ' + m.text + '\n'; $('logbox').open = true;
   } else if (m.type === 'exit') {
     setStatus(`Spiel beendet (Code ${m.code}). Lade die Seite neu, um wieder zu spielen.`);
+  } else if (m.type === 'state') {
+    putState(m.state).then((ok) => note(ok ? 'Spielstand gespeichert' : 'Spielstand ließ sich nicht speichern'));
+  } else if (m.type === 'state-loaded') {
+    note('Spielstand geladen');
+  } else if (m.type === 'state-error') {
+    note('Spielstand: ' + m.text);
   } else if (m.type === 'save') {
     try { localStorage.setItem('kelloggs-hiscore', btoa(String.fromCharCode(...m.data))); } catch {}
   }
@@ -177,6 +186,7 @@ function onWorker(e) {
 
 function key(e, down) {
   if (!worker) return;
+  if (e.code === 'F5' || e.code === 'F9') { e.preventDefault(); if (down && !e.repeat) (e.code === 'F5' ? saveSlot : loadSlot)(); return; }
   const s = SCAN[e.code];
   if (s === undefined) return;
   if (e.repeat) { e.preventDefault(); return; }
@@ -205,8 +215,15 @@ $('full').addEventListener('click', async () => {
   canvas.focus();
 });
 $('sound').addEventListener('click', () => { setSound(!soundOn); canvas.focus(); });
-$('volume').addEventListener('input', (e) => audioNode && audioNode.port.postMessage({ vol: +e.target.value }));
-$('speed').addEventListener('change', (e) => { if (glr) glr.speed = +e.target.value; worker && worker.postMessage({ type: 'speed', value: +e.target.value }); });
+// Einstellungen bleiben in diesem Browser gespeichert (Lautstärke, Tempo)
+const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem('kelloggs-' + k); localStorage.setItem('kelloggs-' + k, v); } catch {} return null; };
+{ const v = pref('volume'); if (v !== null) $('volume').value = v; const sp = pref('speed'); if (sp !== null && [...$('speed').options].some((o) => o.value === sp)) $('speed').value = sp; }
+function applySettings() {
+  if (audioNode) audioNode.port.postMessage({ vol: +$('volume').value });
+  const sp = +$('speed').value; if (glr) glr.speed = sp; if (worker) worker.postMessage({ type: 'speed', value: sp });
+}
+$('volume').addEventListener('input', (e) => { pref('volume', e.target.value); applySettings(); });
+$('speed').addEventListener('change', (e) => { pref('speed', e.target.value); applySettings(); });
 
 // Startbild: Testbild im Spielrahmen
 ctx.fillStyle = '#0b1a63'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -226,15 +243,85 @@ if (APP) {
       startFiles(files);
     } catch (e) { $('tapstart').textContent = 'Spieldateien fehlen in der App'; }
   });
-  for (const b of document.querySelectorAll('#touch .tbtn[data-scan]')) {
-    const scan = +b.dataset.scan; let ids = new Set();
-    const on = (e) => { e.preventDefault(); if (!ids.size) sendScan(scan, true); ids.add(e.pointerId); b.dataset.on = ''; try { b.setPointerCapture(e.pointerId); } catch {} };
-    const off = (e) => { if (!ids.delete(e.pointerId)) return; if (!ids.size) { sendScan(scan, false); delete b.dataset.on; } };
-    b.addEventListener('pointerdown', on);
-    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(t, off);
-  }
-  $('twide').addEventListener('pointerdown', (e) => { e.preventDefault(); if (!$('wide').disabled) setWide(!wideOn); });
 }
+
+// ---------------------------------------------------------------- Touch-Tasten (App und Handy-Browser)
+// Im Handy-Browser (grober Zeiger, kein Mauszeiger) wechselt die Seite beim Spielstart in dieselbe
+// bildschirmfüllende Ansicht wie die App, mit Touch-Tasten.
+const TOUCH = APP || (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches);
+function touchMode() {
+  if (!TOUCH || APP) return;
+  document.body.classList.add('app', 'touchweb');
+  try { const r = document.documentElement.requestFullscreen(); if (r) r.then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {}); } catch {}
+}
+for (const b of document.querySelectorAll('#touch .tbtn[data-scan]')) {
+  const scan = +b.dataset.scan; let ids = new Set();
+  const on = (e) => { e.preventDefault(); if (!ids.size) sendScan(scan, true); ids.add(e.pointerId); b.dataset.on = ''; try { b.setPointerCapture(e.pointerId); } catch {} };
+  const off = (e) => { if (!ids.delete(e.pointerId)) return; if (!ids.size) { sendScan(scan, false); delete b.dataset.on; } };
+  b.addEventListener('pointerdown', on);
+  for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(t, off);
+}
+$('twide').addEventListener('pointerdown', (e) => { e.preventDefault(); if (!$('wide').disabled) setWide(!wideOn); });
+
+// ---------------------------------------------------------------- Gamepad
+// Standard-Belegung: Steuerkreuz/linker Stick = Pfeile, A = Sprung, B/X = Aktion (Alt), Y = Pause,
+// Start = Enter, Select/Zurück = Esc. Gedrückte Tasten werden nur bei Änderung weitergereicht.
+const PAD = [[0, 0x39], [1, 0x38], [2, 0x38], [3, 0x19], [9, 0x1c], [8, 0x01], [12, 0x48], [13, 0x50], [14, 0x4b], [15, 0x4d]];
+const padDown = new Map();
+function padScan() {
+  const want = new Set();
+  for (const g of (navigator.getGamepads ? navigator.getGamepads() : [])) {
+    if (!g || !g.connected) continue;
+    for (const [i, scan] of PAD) { const b = g.buttons[i]; if (b && (b.pressed || b.value > 0.5)) want.add(scan); }
+    const ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+    if (ax < -0.5) want.add(0x4b); if (ax > 0.5) want.add(0x4d);
+    if (ay < -0.6) want.add(0x48); if (ay > 0.6) want.add(0x50);
+  }
+  for (const scan of want) if (!padDown.has(scan)) { padDown.set(scan, 1); sendScan(scan, true); }
+  for (const scan of [...padDown.keys()]) if (!want.has(scan)) { padDown.delete(scan); sendScan(scan, false); }
+}
+let padTimer = null;
+window.addEventListener('gamepadconnected', (e) => {
+  setStatus(`Gamepad verbunden: ${e.gamepad.id.replace(/\s*\(.*$/, '')}`);
+  if (!padTimer) padTimer = setInterval(padScan, 1000 / 120);
+});
+debug.pad = () => [...padDown.keys()];
+
+// ---------------------------------------------------------------- Spielstände
+// Ein Spielstand (F5 speichern, F9 laden, oder die Knöpfe) liegt in diesem Browser in IndexedDB.
+async function putState(state) {
+  try {
+    const db = await gameDb();
+    await new Promise((ok, err) => { const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put(state, 'state'); tx.oncomplete = ok; tx.onerror = () => err(tx.error); });
+    return true;
+  } catch { return false; }
+}
+async function getState() {
+  try {
+    const db = await gameDb();
+    return await new Promise((ok) => { const r = db.transaction('files').objectStore('files').get('state'); r.onsuccess = () => ok(r.result || null); r.onerror = () => ok(null); });
+  } catch { return null; }
+}
+let noteTimer = null;
+function note(text) {
+  const n = $('note'); n.textContent = text; n.hidden = false;
+  clearTimeout(noteTimer); noteTimer = setTimeout(() => { n.hidden = true; }, 2200);
+  setStatus(text);
+}
+function saveSlot() { if (worker) worker.postMessage({ type: 'save-state' }); }
+async function loadSlot() {
+  if (!worker) return;
+  const st = await getState();
+  if (!st) { note('Noch kein Spielstand gespeichert'); return; }
+  worker.postMessage({ type: 'load-state', state: st });
+}
+$('savestate').addEventListener('click', () => { saveSlot(); canvas.focus(); });
+$('loadstate').addEventListener('click', () => { loadSlot(); canvas.focus(); });
+for (const [id, fn] of [['tsave', saveSlot], ['tload', loadSlot]]) $(id).addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); });
+debug.saveSlot = saveSlot; debug.loadSlot = loadSlot;
+
+// ---------------------------------------------------------------- Offline (installierbare Web-App)
+if (!APP && 'serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // ---------------------------------------------------------------- Spielkopie im Browser merken (nur Website)
 // Nach dem ersten Laden bleibt die eigene Spielkopie in diesem Browser (IndexedDB) gespeichert, beim nächsten

@@ -2,10 +2,11 @@
 
 import { Machine } from './machine.js';
 import { sceneFor } from './scene.js';
+import { saveState, loadState } from './state.js';
 
 let m = null, last = 0, paused = false, speed = 1, lastFrame = -1;
 let audioOn = false, audioChunks = [], audioRate = 20000;
-let scene = null, wide = false, gl = false;
+let scene = null, wide = false, gl = false, gameFiles = null, hiscore = null, timer = null;
 
 function onSamples(buf, rate) {
   if (!audioOn) return;
@@ -57,26 +58,41 @@ function tick() {
   if (m.exitCode !== null) { postMessage({ type: 'exit', code: m.exitCode }); m = null; }
 }
 
+// Maschine starten (optional aus einem Spielstand), Szene und Highscore-Meldung einrichten
+function boot(state) {
+  const n = new Machine({ files: gameFiles, log, onSamples });
+  if (hiscore) n.files.set('HISCORE.DAT', hiscore);
+  n.load();
+  if (state) loadState(n, state);
+  scene = sceneFor(n);
+  // Highscores beim Schreiben an die Seite melden (zum Speichern im Browser)
+  const close = n.int21.bind(n);
+  n.int21 = () => {
+    const c = n.cpu;
+    const h = c.ah === 0x3e ? n.handles[c.bx] : null;
+    close();
+    if (h && h.name === 'HISCORE.DAT') { hiscore = n.files.get('HISCORE.DAT'); postMessage({ type: 'save', name: 'HISCORE.DAT', data: hiscore }); }
+  };
+  return n;
+}
+
 onmessage = (e) => {
   const msg = e.data;
   if (msg.type === 'start') {
-    m = new Machine({ files: msg.files, log, onSamples });
-    try {
-      const hs = msg.hiscore; if (hs) m.files.set('HISCORE.DAT', hs);
-      m.load();
-    } catch (err) { postMessage({ type: 'error', text: err.message }); m = null; return; }
-    scene = sceneFor(m);
+    gameFiles = msg.files; hiscore = msg.hiscore;
+    try { m = boot(); } catch (err) { postMessage({ type: 'error', text: err.message }); m = null; return; }
     postMessage({ type: 'wide-support', on: !!scene, name: scene ? scene.p.name : null });
-    // Highscores beim Schreiben an die Seite melden (zum Speichern im Browser)
-    const close = m.int21.bind(m);
-    m.int21 = () => {
-      const c = m.cpu;
-      const h = c.ah === 0x3e ? m.handles[c.bx] : null;
-      close();
-      if (h && h.name === 'HISCORE.DAT') postMessage({ type: 'save', name: 'HISCORE.DAT', data: m.files.get('HISCORE.DAT') });
-    };
     last = performance.now();
-    setInterval(tick, 1000 / 60);
+    timer = setInterval(tick, 1000 / 60);
+  } else if (msg.type === 'save-state' && m) {
+    try { postMessage({ type: 'state', state: saveState(m) }); } catch (err) { postMessage({ type: 'state-error', text: err.message }); }
+  } else if (msg.type === 'load-state' && gameFiles) {
+    try {
+      const n = boot(msg.state);
+      m = n; lastFrame = -1; last = performance.now();
+      if (!timer) timer = setInterval(tick, 1000 / 60);
+      postMessage({ type: 'state-loaded' });
+    } catch (err) { postMessage({ type: 'state-error', text: err.message }); }
   } else if (msg.type === 'key' && m) {
     if (msg.down) m.keyDown(msg.scan); else m.keyUp(msg.scan);
   } else if (msg.type === 'pause') {

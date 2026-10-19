@@ -68,22 +68,97 @@ def redraw(period, seed, rim_light=True):
         out[mb] = oc[mb]
     return out[P * S:(P + H) * S, P * S:(P + W) * S]
 
+
+def rocks(period, seed):
+    """Rounder, more plastic rocks: every rock of the original becomes a lumpy, rounded boulder with the same
+    position and size, lit from the top left like a 3D surface: moss on its top, brown flank, dark dithered
+    underside, black cracks between the rocks."""
+    H, W, _ = period.shape
+    big = np.tile(period, (3, 3, 1))
+    nb = (~np.all(big == BLACK, axis=2)).astype(float)
+    # cracks = solid black areas; the rest is rock. Rocks touch each other, so split them at their narrow
+    # waists (watershed on the distance to the cracks, one seed per thick part).
+    from skimage.segmentation import watershed
+    rock = ndimage.gaussian_filter(nb, 0.9) > 0.22
+    dist = ndimage.distance_transform_edt(rock)
+    peaks = (dist == ndimage.maximum_filter(dist, size=7)) & (dist > 1.6)
+    markers, _ = ndimage.label(peaks)
+    lab = watershed(-dist, markers, mask=rock)
+    green = np.all(big == GREEN, axis=2) | np.all(big == DGREEN, axis=2)
+    blobs = []
+    for k, sl in enumerate(ndimage.find_objects(lab), 1):
+        ys, xs = np.nonzero(lab[sl] == k)
+        if len(ys) < 4: continue
+        ys = ys + sl[0].start; xs = xs + sl[1].start
+        cy, cx = ys.mean() + 0.5, xs.mean() + 0.5
+        if not (H <= cy < 2 * H and W <= cx < 2 * W): continue      # keep each rock once (centre in the middle copy)
+        cov = np.cov(np.vstack([xs, ys])) + np.eye(2) * 0.3
+        ev, evec = np.linalg.eigh(cov)
+        a, b = [2.05 * np.sqrt(e) + 0.7 for e in ev]               # ellipse half axes that cover the rock
+        mossy = green[ys, xs].mean() if len(ys) else 0
+        blobs.append((cx - W, cy - H, a, b, evec, mossy, k))
+    blobs.sort(key=lambda t: t[1])                               # lower rocks overlap upper ones
+    S_ = S; img = np.zeros((H * S_, W * S_, 3), np.uint8)
+    yy, xx = np.mgrid[0:H * S_, 0:W * S_]
+    u = (xx + 0.5) / S_; v = (yy + 0.5) / S_
+    L = np.array([-0.45, -0.65, 0.62]); L = L / np.linalg.norm(L)
+    rng = np.random.default_rng(seed)
+    for (cx, cy, a, b, evec, mossy, k) in blobs:
+        ph = rng.random(3) * 6.28
+        for ox in (-W, 0, W):
+            for oy in (-H, 0, H):
+                dx = u - (cx + ox); dy = v - (cy + oy)
+                p = np.stack([dx, dy], -1) @ evec                   # into the ellipse frame
+                ang = np.arctan2(p[..., 1], p[..., 0])
+                wob = 1 + 0.07 * np.sin(3 * ang + ph[0]) + 0.05 * np.sin(5 * ang + ph[1])   # lumpy outline
+                r2 = (p[..., 0] / (a * wob)) ** 2 + (p[..., 1] / (b * wob)) ** 2
+                inside = r2 < 1
+                if not inside.any(): continue
+                nz = np.sqrt(np.clip(1 - r2, 0, 1))
+                # surface normal (back to screen axes)
+                nxy = np.stack([p[..., 0] / (a * a), p[..., 1] / (b * b)], -1) @ evec.T
+                nx, ny = nxy[..., 0] * min(a, b), nxy[..., 1] * min(a, b)
+                lum = (nx * L[0] + ny * L[1] + nz * L[2]) / np.sqrt(nx * nx + ny * ny + nz * nz + 1e-9)
+                c = np.zeros(inside.shape + (3,), np.uint8)
+                c[:] = BLACK
+                dith = ((yy // 2 + xx // 2) % 2 == 0)
+                c[lum > 0.10] = np.where(dith[lum > 0.10, None], DBRN, BLACK)
+                c[lum > 0.38] = DBRN
+                c[lum > 0.70] = BRN
+                # moss grows as a crust along the upper rim of the rock
+                nn = np.sqrt(nx * nx + ny * ny) + 1e-9
+                up = -ny / nn
+                lim = 0.62 - 0.3 * mossy
+                top = (up > lim) & (r2 > 0.30) & (lum > 0.3)
+                c[top] = DGREEN
+                c[top & (up > lim + 0.18) & (r2 > 0.45)] = GREEN
+                spk = top & (rng.random(inside.shape) < 0.03)
+                c[spk] = LIME
+                c[(r2 > 0.86) & (lum < 0.3)] = BLACK                 # dark rim on the shadow side
+                img[inside] = c[inside]
+    return img
+
 def cap(u, v):
-    """stone cap block 057: cut stone, wide at the top, narrowing downwards, moss in the gaps"""
+    """stone cap block 057: cut stone, wide at the top, narrowing downwards, with bevelled edges:
+    light top and left bevel, dark right bevel and underside, front face lit from the top left"""
     def edges(v):
         return 0.5 + 1.8 * (v / 12.5) ** 1.6, 15.0 - 2.4 * (v / 12.5) ** 1.6
+    BV = 1.5                                   # bevel width
     if v < 12.6:
         l, r = edges(v)
         if l <= u <= r:
-            if v < 0.55: return WHITE if u < 10.5 else YEL if u < 12.5 else OCH
-            if v < 1.7: return YEL
-            # bevel: light diagonal from the top-left corner
-            if abs((u - l) - (v - 1.7) * 0.75) < 0.42 and v < 6.0: return WHITE
-            if u - l < 0.6: return YEL if v < 7 else OCH
-            if r - u < 1.1: return BRN if v < 6 else DBRN
-            t = (v - 1.7) / 10.9 + 0.45 * (u - l) / (r - l) - 0.2   # lit from the top left
-            if v > 11.6: return DBRN
-            return YEL if t < 0.08 else OCH if t < 0.45 else BRN if t < 0.82 else DBRN
+            dl, dr, dt, db = u - l, r - u, v, 12.6 - v
+            m = min(dl, dr, dt, db)
+            if m < BV:                         # bevel facets
+                if m == dt: return WHITE if dt < 0.5 and u < 11 else YEL
+                if m == dl: return WHITE if dl < 0.45 and v < 7 else YEL
+                if m == dr: return BRN if v < 4 else DBRN
+                return DBRN if db > 0.5 else BLACK
+            # front face: lit from the top left, a soft highlight and grain
+            t = (v - BV) / (12.6 - 2 * BV) * 0.75 + (u - l) / (r - l) * 0.45
+            k = (int(u * 2) * 5 + int(v * 2) * 11) % 13
+            c = YEL if t < 0.30 else OCH if t < 0.68 else BRN if t < 0.98 else DBRN
+            return c
     if 12.6 <= v < 13.9:
         l, r = edges(12.6)
         if l + 0.5 <= u <= r - 0.3: return BLACK
@@ -98,7 +173,7 @@ if __name__ == '__main__':
     T = lambda n: pal[np.array(d['tiles'][n]['px']).reshape(16, 16)]
     grid = [[80, 81], [87, 88], [89, 90]]
     period = np.vstack([np.hstack([T(n) for n in row]) for row in grid])
-    hd = redraw(period, 1)
+    hd = rocks(period, 1)
     made = {}
     for r, row in enumerate(grid):
         for c, n in enumerate(row):

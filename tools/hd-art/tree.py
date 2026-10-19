@@ -40,8 +40,8 @@ BRANCH = [((106.0, 205.0), (89.0, 201.5), 2.6, 1.3), ((89.0, 201.5), (84.5, 195.
           ((90.0, 201.0), (80.5, 200.0), 0.9, 0.3)]
 
 def trunk_edges(v):
-    l = TL - max(0.0, 184.0 - v) * 0.75       # widens into the crown at the top
-    r = TR + max(0.0, v - 310.0) * 0.55       # root flare at the bottom
+    l = TL - max(0.0, 184.0 - v) * 1.2        # widens into the crown at the top
+    r = TR + max(0.0, v - 310.0) * 0.55 + max(0.0, 184.0 - v) * 0.3   # root flare / crown fork
     return l, r
 
 def trunk(u, v):
@@ -54,7 +54,7 @@ def trunk(u, v):
             side = (v - (a[1] + (b[1] - a[1]) * t))
             if d > w - 0.35: return DBRN
             return (238, 238, 238) if side < -w * 0.3 else OCH if side < w * 0.2 else BRN
-    if v < 170: return None
+    if v < 140: return None
     l, r = trunk_edges(v)
     if not (l <= u <= r): return None
     cx, cy, rx, ry = HOLE
@@ -81,12 +81,15 @@ def overlay_trunk(hd, C, x0, y0):
     leaf = {LIME, GREEN, DGREEN}
     for y in range(H):
         v = (y + 0.5) / 4
-        if v < 160: continue
+        if v < 140: continue
         for x in range(W):
             u = (x + 0.5) / 4
             c = trunk(u, v)
             if c is None: continue
-            if tuple(hd[y, x]) in leaf and tuple(C[int(v), int(u)]) in leaf: continue
+            o = tuple(C[int(v), int(u)])
+            if tuple(hd[y, x]) in leaf and o in leaf: continue
+            # where the trunk forks into the crown, follow the original's outline (no straight cut-off line)
+            if v < 184 and (o in leaf or o == (0, 109, 238) or tuple(hd[y, x]) == (0, 109, 238)): continue
             hd[y, x] = c
 
 PINK=(238,93,109); DRED=(157,0,0); YELC=(238,238,93); WHITEC=(238,238,238)

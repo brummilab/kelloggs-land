@@ -8,10 +8,11 @@ from PIL import Image
 
 BLACK=(0,0,0); WHITE=(238,238,238); LBLUE=(125,157,238); BLUE=(0,109,238)
 OCH=(206,157,60); BRN=(141,76,0); DBRN=(76,28,0)
-CX, CY, R = 7.3, 18.1, 8.9          # arch circle (outer edge of the frame)
-L, RT = 0.0, 14.6                    # outer frame left/right
+CX, CY, R = 7.5, 18.1, 9.0          # arch circle (outer edge of the frame)
+L, RT = 0.0, 15.0                    # outer frame left/right
 GL, GR, GT, GB = 3.0, 12.0, 12.4, 37.4   # glass opening (top = arch inner)
-BARS = [21.5, 27.0, 32.5]            # horizontal bars (one on the 045/056 boundary area)
+BARS = [16.5, 21.5, 27.0, 32.5]      # horizontal bars, as in the original (top rows of 045 and 056 are bars)
+JOINTS = [13.0, 17.2, 21.2, 26.2, 30.2, 34.2]   # joints between the wooden blocks of the side frames
 MUL = 7.5                            # vertical bar
 
 def outer(u, v):
@@ -52,7 +53,10 @@ def colour(u, v):
     arch = v < CY
     edge = (R - math.hypot(u - CX, v - CY)) if arch else du
     left = u < CX
-    if any(abs(v - b) < 0.12 for b in BARS) and du < 3.0 and left: return DBRN
+    if not arch:
+        for j in JOINTS:                              # frame built from blocks: dark joint, light edge below it
+            if 0 <= v - j < 0.45: return BRN if left else DBRN
+            if 0.45 <= v - j < 0.7 and left and edge < 2.0: return (238, 210, 140) if False else OCH
     if left:
         return OCH if edge < 2.0 else BRN
     if edge < 0.35: return DBRN

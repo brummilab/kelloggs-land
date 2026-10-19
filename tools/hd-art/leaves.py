@@ -11,13 +11,17 @@ BLACK=(0,0,0); WHITE=(238,238,238); LIME=(141,238,0); GREEN=(0,174,0); DGREEN=(2
 YEL=(238,238,93); BRN=(141,76,0); DBRN=(76,28,0); SKY=(0,109,238)
 P = 32  # period in original pixels
 
-# leaves in one period: (round-part centre x, centre y, radius, tip x, tip y, front?)
+# leaves in one period, drawn in this order (later ones overlap earlier ones). Every leaf differs:
+# size, lean (tip position), how far the vein bends, size of the lit part, own pattern of light/dark flecks.
 LEAVES = [
-    (20.6, 7.0, 2.0, 19.0, 13.0, False),   # back leaves (dark), drawn first
-    (9.4, 7.5, 1.9, 8.3, 13.0, False),
-    (4.6, 5.8, 4.8, 1.4, 13.9, True),      # A
-    (14.7, 5.1, 4.6, 11.2, 13.0, True),    # B
-    (26.6, 4.9, 4.6, 22.6, 13.4, True),    # C
+    # back leaves: dark, only partly visible between the front leaves
+    dict(c=(30.6, 3.0), r=1.9, tip=(29.4, 7.0), back=True),
+    dict(c=(20.9, 8.0), r=2.5, tip=(18.4, 13.6), back=True),
+    dict(c=(9.7, 8.4), r=2.3, tip=(8.2, 13.8), back=True),
+    # front leaves
+    dict(c=(26.4, 5.6), r=4.5, tip=(21.2, 13.7), bend=1.1, lit=0.74, seed=3),            # C: leans far left
+    dict(c=(4.4, 6.2), r=4.9, tip=(1.0, 14.0), bend=0.8, lit=0.70, seed=1, spot=(3.0, 5.2)),  # A: biggest, glint
+    dict(c=(15.0, 4.7), r=3.9, tip=(12.8, 12.4), bend=-0.6, lit=0.58, seed=2),           # B: small, upright
 ]
 
 def leaf_sd(u, v, cx, cy, r, tx, ty):
@@ -29,40 +33,55 @@ def leaf_sd(u, v, cx, cy, r, tx, ty):
     qx, qy = cx + ax * t, cy + ay * t
     return math.hypot(u - qx, v - qy) - rr
 
-def vein(u, v, cx, cy, r, tx, ty):
+def vein(u, v, cx, cy, r, tx, ty, bend):
     """distance to the vein: from the top of the leaf curving down to the tip."""
     best = 9
     for k in range(25):
         s = k / 24
-        x = cx + 0.3 * r + (tx - cx - 0.3 * r) * s ** 1.3 + 0.6 * math.sin(s * math.pi)
+        x = cx + 0.3 * r + (tx - cx - 0.3 * r) * s ** 1.3 + bend * math.sin(s * math.pi)
         y = cy - 0.75 * r + (ty - cy + 0.75 * r) * s
         best = min(best, math.hypot(u - x, v - y))
     return best
+
+def noise(i, j, seed):
+    h = (i * 374761393 + j * 668265263 + seed * 2246822519) & 0xffffffff
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
+    return (h ^ (h >> 16)) / 0xffffffff
+
+LIGHTER = {DGREEN: GREEN, GREEN: LIME, LIME: YEL}
+DARKER = {LIME: GREEN, GREEN: DGREEN, YEL: LIME}
 
 def period_colour(u, v):
     c = BLACK
     # branch along the top
     if v < 1.6 + 0.35 * math.sin(u * 0.9) : c = DBRN if (v < 0.9 and (u * 0.37) % 3 < 1.7) else BRN
-    for (cx, cy, r, tx, ty, front) in LEAVES:
+    for lf in LEAVES:
+        (cx, cy), r, (tx, ty) = lf['c'], lf['r'], lf['tip']
         for off in (-P, 0, P):
             uu = u - off
             d = leaf_sd(uu, v, cx, cy, r, tx, ty)
             if d > 0.45: continue
-            if not front:
-                c = BLACK if d > -0.3 else DGREEN
-                continue
             if d > -0.05: c = BLACK; continue
-            # light from the top left: lit side light, shadow side dark green rim
             gx = leaf_sd(uu + .2, v, cx, cy, r, tx, ty) - leaf_sd(uu - .2, v, cx, cy, r, tx, ty)
             gy = leaf_sd(uu, v + .2, cx, cy, r, tx, ty) - leaf_sd(uu, v - .2, cx, cy, r, tx, ty)
             n = math.hypot(gx, gy) or 1; lit = -(gx + gy) / n / 1.414
+            if lf.get('back'):
+                c = GREEN if (d > -0.6 and lit > 0.3) else DGREEN
+                if vein(uu, v, cx, cy, r, tx, ty, 0.3) < 0.25: c = BLACK
+                continue
             if d > -0.6 and lit < 0.2: c = DGREEN; continue
-            inner = leaf_sd(uu + 0.8, v + 0.9, cx, cy, r * 0.68, tx + 1.2, ty - 2.0)
-            vd = vein(uu, v, cx, cy, r, tx, ty)
+            k = lf['lit']
+            inner = leaf_sd(uu + 0.8, v + 0.9, cx, cy, r * k, tx + 1.2, ty - 2.0)
+            vd = vein(uu, v, cx, cy, r, tx, ty, lf['bend'])
             c = LIME if inner < 0 else GREEN
+            # flecks: the leaf surface is mottled like in the original (half-pixel spots, own pattern per leaf)
+            nz = noise(int(uu * 2), int(v * 2), lf['seed'])
+            if inner < 0 and nz < 0.16: c = YEL
+            elif inner >= 0 and nz < 0.10: c = LIME
+            elif nz > 0.93: c = DARKER.get(c, c)
             if vd < 0.32: c = GREEN if inner < 0 else DGREEN
             elif vd < 1.0 and inner < 0 and v < cy + 3.2: c = YEL
-            if cx == 4.6 and math.hypot(uu - 3.0, v - 4.9) < 0.55: c = WHITE
+            if 'spot' in lf and math.hypot(uu - lf['spot'][0], v - lf['spot'][1]) < 0.55: c = WHITE
     return c
 
 def render_tile(px_orig, x0):

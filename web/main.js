@@ -143,6 +143,7 @@ function onWorker(e) {
       ctx.drawImage(off, x0, 0, w43, canvas.height);
     } else ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
   } else if (m.type === 'scene') {
+    const ov = !!m.scene.overlay; if (ov !== debug.lastOverlay) { debug.overlayToggles = (debug.overlayToggles || 0) + 1; debug.lastOverlay = ov; }
     glr.push(m.scene); setGl('scene');
     loadAvg = loadAvg * 0.95 + m.load * 0.05; modeText = `${m.scene.extra ? 'Breitbild' : '4:3'} WebGL · ${320 + 2 * m.scene.extra}×${m.scene.H}`;
   } else if (m.type === 'wide-support') {

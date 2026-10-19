@@ -89,8 +89,12 @@ export class Scene {
     const d = base + idx * 0x2c, c = this.cpu;
     // Kennung der Bildbeschreibung: ändert sich, wenn das Spiel andere Grafik unter dieselbe Bildnummer legt
     // (z. B. beim Wechsel der Spielfigur); dann muss das Bild neu mitgeschnitten werden
+    // (z. B. beim Wechsel der Spielfigur: dieselbe Beschreibung, aber anderer Zeichencode an derselben Adresse),
+    // daher auch die ersten 64 Bytes des kompilierten Zeichencodes (far-Zeiger bei 0x18) mit in die Kennung
     let sig = 0x811c9dc5;
     for (let i = 0; i < 0x2c; i += 2) { sig ^= c.rw(d + i); sig = Math.imul(sig, 0x01000193) >>> 0; }
+    const cb = this.m.selBase(c.rw(d + 0x1a));
+    if (cb !== undefined) { const ca = cb + c.rw(d + 0x18); for (let i = 0; i < 64; i += 2) { sig ^= c.rw(ca + i); sig = Math.imul(sig, 0x01000193) >>> 0; } }
     return { w: c.rw(d), h: c.rw(d + 2), hx: s16(c.rw(d + 8)), hy: s16(c.rw(d + 10)), sig };
   }
 

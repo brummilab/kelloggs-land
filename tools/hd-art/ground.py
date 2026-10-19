@@ -94,7 +94,7 @@ def rocks(period, seed):
         if not (H <= cy < 2 * H and W <= cx < 2 * W): continue      # keep each rock once (centre in the middle copy)
         cov = np.cov(np.vstack([xs, ys])) + np.eye(2) * 0.3
         ev, evec = np.linalg.eigh(cov)
-        a, b = [2.05 * np.sqrt(e) + 0.7 for e in ev]               # ellipse half axes that cover the rock
+        a, b = [1.85 * np.sqrt(e) + 0.6 for e in ev]               # ellipse half axes that cover the rock
         mossy = green[ys, xs].mean() if len(ys) else 0
         blobs.append((cx - W, cy - H, a, b, evec, mossy, k))
     blobs.sort(key=lambda t: t[1])                               # lower rocks overlap upper ones
@@ -122,18 +122,19 @@ def rocks(period, seed):
                 c = np.zeros(inside.shape + (3,), np.uint8)
                 c[:] = BLACK
                 dith = ((yy // 2 + xx // 2) % 2 == 0)
-                c[lum > 0.10] = np.where(dith[lum > 0.10, None], DBRN, BLACK)
-                c[lum > 0.38] = DBRN
-                c[lum > 0.70] = BRN
-                # moss grows as a crust along the upper rim of the rock
+                # dark like the original: the body is dark brown dithered with black, light only on the rim
+                c[lum > 0.25] = np.where(dith[lum > 0.25, None], DBRN, BLACK)
+                c[lum > 0.74] = DBRN
+                rim = (r2 > 0.55) & (lum > 0.66)
+                c[rim] = BRN
+                # moss: a thin crust on the upper rim, green spots in it
                 nn = np.sqrt(nx * nx + ny * ny) + 1e-9
                 up = -ny / nn
-                lim = 0.62 - 0.3 * mossy
-                top = (up > lim) & (r2 > 0.30) & (lum > 0.3)
+                lim = 0.70 - 0.3 * mossy
+                top = (up > lim) & (r2 > 0.52) & (lum > 0.3)
                 c[top] = DGREEN
-                c[top & (up > lim + 0.18) & (r2 > 0.45)] = GREEN
-                spk = top & (rng.random(inside.shape) < 0.03)
-                c[spk] = LIME
+                g = top & (up > lim + 0.15) & (r2 > 0.75) & (rng.random(inside.shape) < 0.55)
+                c[g] = GREEN
                 c[(r2 > 0.86) & (lum < 0.3)] = BLACK                 # dark rim on the shadow side
                 img[inside] = c[inside]
     return img

@@ -233,7 +233,12 @@ if __name__ == '__main__':
             for x in range(x0, x1):
                 j = grid[y][x]
                 if j >= 0: C[(y - y0) * 16:(y - y0 + 1) * 16, (x - x0) * 16:(x - x0 + 1) * 16] = tiles[j]
-        hd = redraw(C, [WOOD | {WHITE, YEL}, LEAF - {WHITE, YEL}, REDS])
+        if x0 == 10:   # leaves in the style of the leaf row (leafstyle.py), the rest redrawn
+            import leafstyle
+            leafstyle.LEAFCOLS = [LIME, GREEN, DGREEN]     # yellow here is the platforms' highlight
+            hd = leafstyle.render(C, x0, y0, grid, redraw, [WOOD | {WHITE, YEL}, LEAF - {WHITE, YEL}, REDS])
+        else:
+            hd = redraw(C, [WOOD | {WHITE, YEL}, LEAF - {WHITE, YEL}, REDS])
         if x0 == 10: overlay_trunk(hd, C, x0, y0)
         if x0 == 195:
             gx0, gy0 = (197 - x0) * 16, (26 - y0) * 16

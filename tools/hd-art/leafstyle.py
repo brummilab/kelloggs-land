@@ -36,7 +36,8 @@ def find_leaves(C, min_area=8):
         lo = p < -a * 0.35; hi = p > a * 0.35
         wlo = np.ptp(q[lo]) if lo.sum() > 1 else 0; whi = np.ptp(q[hi]) if hi.sum() > 1 else 0
         tipdir = e if whi < wlo else -e
-        b = max(1.0, np.ptp(q) / 2 + 0.3)
+        a *= 1.1                                        # a bit bigger than measured: leaves overlap like in the original
+        b = max(1.0, np.ptp(q) / 2 + 0.3) * 1.12
         r = b * 1.02
         rc = c - tipdir * a * 0.22
         tip = c + tipdir * (a * 0.98)
@@ -73,8 +74,9 @@ def draw_leaves(hd, leaves, S=4):
                 gx = leaf_sd(u + .2, v, cx, cy, r, tx, ty) - leaf_sd(u - .2, v, cx, cy, r, tx, ty)
                 gy = leaf_sd(u, v + .2, cx, cy, r, tx, ty) - leaf_sd(u, v - .2, cx, cy, r, tx, ty)
                 n = math.hypot(gx, gy) or 1; lit = -(gx + gy) / n / 1.414
-                if (d > -0.55 and lit < 0.1) or (d > -0.85 and lit < -0.4): hd[y, x] = DGREEN; continue
-                inner = leaf_sd(u + 0.45, v + 0.5, cx, cy, r * 0.42, tx + 0.2, ty + 0.2)
+                # darker like the original: wide dark rim on the shadow side, small light part
+                if (d > -0.95 and lit < 0.25) or (d > -2.4 and lit < -0.05): hd[y, x] = DGREEN; continue
+                inner = leaf_sd(u + 0.55, v + 0.6, cx, cy, r * 0.32, tx + 0.3, ty + 0.3)
                 # vein: along the axis from the round part to the tip, slightly curved
                 t = ((u - cx) * ax + (v - cy) * ay) / (L * L)
                 px, py = cx + ax * t, cy + ay * t
@@ -82,9 +84,71 @@ def draw_leaves(hd, leaves, S=4):
                 vd = abs((u - px) * (-ay) / L + (v - py) * (ax / L) - bend)
                 col = LIME if inner < 0 else GREEN
                 nz = noise(int(u * 2), int(v * 2), seed)
-                if inner < 0 and nz < 0.08: col = YEL
+                if inner < 0 and nz < 0.05: col = YEL
                 elif inner >= 0 and nz < 0.08: col = LIME
                 elif nz > 0.94: col = GREEN if col == LIME else DGREEN
                 if -0.2 < t < 1.0 and vd < 0.22: col = GREEN if inner < 0 else DGREEN
                 hd[y, x] = col
     return hd
+
+
+def neighbour_sets(grid):
+    """for every tile id and every direction: the set of tile ids that are ever its neighbour there"""
+    nb = {}
+    H, W = len(grid), len(grid[0])
+    for y in range(H):
+        for x in range(W):
+            t = grid[y][x]
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    if (dx or dy) and 0 <= y + dy < H and 0 <= x + dx < W:
+                        nb.setdefault(t, {}).setdefault((dx, dy), set()).add(grid[y + dy][x + dx])
+    return nb
+
+def fit_leaves(leaves, x0, y0, grid, nb):
+    """a tile looks the same everywhere it is used, so a leaf may only reach into a neighbour tile when that
+    neighbour is always the same (both ways). Otherwise the leaf is made smaller / moved so it stays inside its
+    own tile, instead of being cut off at the tile edge."""
+    out = []
+    for (c, rc, r, tip, seed) in leaves:
+        hx, hy = int(c[0] // 16), int(c[1] // 16)
+        H = grid[y0 + hy][x0 + hx]
+        def ok(dx, dy):
+            N = grid[y0 + hy + dy][x0 + hx + dx]
+            return nb[H].get((dx, dy)) == {N} and nb[N].get((-dx, -dy)) == {H}
+        m = 0.45
+        L = hx * 16 + m if not ok(-1, 0) else -1e9; R = hx * 16 + 16 - m if not ok(1, 0) else 1e9
+        T = hy * 16 + m if not ok(0, -1) else -1e9; B = hy * 16 + 16 - m if not ok(0, 1) else 1e9
+        bx0, bx1 = min(rc[0] - r, tip[0]), max(rc[0] + r, tip[0])
+        by0, by1 = min(rc[1] - r, tip[1]), max(rc[1] + r, tip[1])
+        # diagonals: if the leaf reaches a corner tile that is not always the same, keep it out vertically
+        for dx, dy, cond in ((-1, -1, bx0 < hx * 16 and by0 < hy * 16), (1, -1, bx1 > hx * 16 + 16 and by0 < hy * 16),
+                             (-1, 1, bx0 < hx * 16 and by1 > hy * 16 + 16), (1, 1, bx1 > hx * 16 + 16 and by1 > hy * 16 + 16)):
+            if cond and not ok(dx, dy):
+                if dy < 0: T = max(T, hy * 16 + m)
+                else: B = min(B, hy * 16 + 16 - m)
+        s = min(1.0, (R - L) / (bx1 - bx0), (B - T) / (by1 - by0))
+        ox, oy = (bx0 + bx1) / 2, (by0 + by1) / 2
+        f = lambda p: (ox + (p[0] - ox) * s, oy + (p[1] - oy) * s)
+        c2, rc2, tip2 = f(c), f(rc), f(tip)
+        nb0, nb1 = ox + (bx0 - ox) * s, ox + (bx1 - ox) * s
+        mb0, mb1 = oy + (by0 - oy) * s, oy + (by1 - oy) * s
+        sx = (L - nb0) if nb0 < L else (R - nb1) if nb1 > R else 0
+        sy = (T - mb0) if mb0 < T else (B - mb1) if mb1 > B else 0
+        g = lambda p: (p[0] + sx, p[1] + sy)
+        out.append((g(c2), g(rc2), r * s, g(tip2), seed))
+    return out
+
+def leaf_free(C):
+    """the original without its leaves: every leaf pixel takes the colour of the nearest non-leaf pixel
+    (branches, dark gaps, sky), so nothing of the old leaves shows where a new leaf is smaller"""
+    m = np.zeros(C.shape[:2], bool)
+    for c in LEAFCOLS: m |= np.all(C == c, axis=2)
+    idx = ndimage.distance_transform_edt(m, return_distances=False, return_indices=True)
+    return C[idx[0], idx[1]]
+
+def render(C, x0, y0, grid, redraw, families=None):
+    """C: original colours of the map area starting at map tile (x0, y0). Branches / sky redrawn, leaves new."""
+    nb = neighbour_sets(grid)
+    hd = redraw(leaf_free(C), families)
+    return draw_leaves(hd, fit_leaves(find_leaves(C), x0, y0, grid, nb))

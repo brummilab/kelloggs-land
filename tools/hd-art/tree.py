@@ -206,8 +206,10 @@ def gate(Cg):
                 c = BLACK if (int(u * 2) + int(v * 2)) % 3 else DBRN    # dark wall / opening
                 # door panels: pointed red lenses, darker dithered red around them
                 # the two door wings almost meet in the middle, like in the original
-                for (cx, cy, hw, hh, out) in [(25.8, 29.0, 6.0, 13.2, -1), (37.7, 29.0, 6.0, 13.2, 1),
-                                              (25.8, 62.0, 6.0, 9.0, -1), (37.7, 62.0, 6.0, 9.0, 1)]:
+                # door wings like the original: pointed, the upper and the lower wings almost meet each
+                # other (only a short dark gap between them), black gap in the middle
+                for (cx, cy, hw, hh, out) in [(24.8, 31.5, 5.8, 15.0, -1), (38.7, 31.5, 5.8, 15.0, 1),
+                                              (24.8, 64.5, 5.8, 12.5, -1), (38.7, 64.5, 5.8, 12.5, 1)]:
                     f = abs(u - cx) / hw + ((v - cy) / hh) ** 2
                     if f < 1:
                         side = (u - cx) * out

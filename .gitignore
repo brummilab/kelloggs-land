@@ -9,3 +9,8 @@ node_modules/
 dist/
 game
 out/
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.keystore

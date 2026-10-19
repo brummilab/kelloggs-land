@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths: ['android/**', 'web/*.js', 'web/index.html', '.github/workflows/android.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +18,14 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
       - run: gradle -p android assembleRelease --no-daemon
-      - name: tools to add the game files and sign (zipalign, apksigner)
+      - name: unsigned app + tools to add the game files and sign (zipalign, apksigner) on branch android-build
         run: |
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          mkdir -p out/build-tools && cp -r $BT/. out/build-tools/
+          mkdir -p out/build-tools/lib
+          cp $BT/zipalign out/build-tools/ && cp $BT/lib/apksigner.jar out/build-tools/lib/
+          [ -d $BT/lib64 ] && cp -r $BT/lib64 out/build-tools/ || true
+          ldd $BT/zipalign || true
           cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/
-      - uses: actions/upload-artifact@v4
-        with: { name: kelloggs-android, path: out, retention-days: 7 }
+          cd out && git init -q -b android-build && git add -A
+          git -c user.name=brummilab -c user.email=brummilab@users.noreply.github.com commit -qm "Android test app build ${GITHUB_SHA::7} (no game files)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-build

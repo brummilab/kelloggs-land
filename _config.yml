@@ -1,0 +1,7 @@
+# GitHub Pages (Jekyll): never publish the game files or tooling
+exclude:
+  - gamedata
+  - android
+  - tools
+  - docs
+  - game

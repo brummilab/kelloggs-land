@@ -19,3 +19,16 @@ Invoke-WebRequest https://raw.githubusercontent.com/brummilab/kelloggs-land-hd/m
 ```
 
 The MCP server itself needs `mcp<2`: `uvx --with "mcp<2" libresprite-mcp`.
+
+## Own relay server (`server.py`, MIT)
+
+The original relay holds `GET /` open until a script arrives. When LibreSprite is restarted, the abandoned requests keep waiting and later take scripts that never run. `server.py` is a small replacement with the same protocol: `GET /` answers at once, scripts time out after 60 s with a clear message, and a second instance (the Claude app may start two) forwards its scripts to the one that owns port 64823.
+
+Claude app config (`mcpServers`):
+
+```json
+"libresprite": {
+  "command": "C:\\Users\\<you>\\...\\uv.exe",
+  "args": ["run", "--no-project", "--with", "mcp<2", "C:\\Users\\<you>\\AppData\\Roaming\\LibreSprite\\claude-server.py"]
+}
+```

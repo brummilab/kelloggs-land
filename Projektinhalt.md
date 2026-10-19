@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: Ursache für hängende LibreSprite-Befehle: Original-Relay hält Abfragen offen, nach LibreSprite-Neustart schlucken verwaiste Abfragen die Befehle. Eigener Relay-Server tools/libresprite/server.py (sofortige Antwort, Zeitlimit, Weitergabe zwischen zwei Instanzen); lokal getestet.
 - 19.10.2026: LibreSprite-MCP läuft: Claude steuert LibreSprite 1.3 per JavaScript. Angepasstes mcp.js (tools/libresprite/mcp.js): Berechtigung net.fetch, kein app.yield (kommt in 1.3 nicht an) → setTimeout, Antworten per Abfrage, eine Abfrage-Schleife, leere Abrufe nicht als Ausgabe senden. Anzeige „Connect“ wechselt nicht, Verbindung läuft trotzdem.
 - 19.10.2026: LibreSprite-MCP eingerichtet: Server braucht `--with mcp<2`; Claude-App (Store-Version) liest Konfiguration aus %LOCALAPPDATA%\Packages\Claude_…\LocalCache\Roaming\Claude. mcp.js für LibreSprite 1.3 angepasst (global ohne this, 127.0.0.1, Antworten per Abfrage) → tools/libresprite/mcp.js (GPL-2.0).
 - 19.10.2026: LibreSprite 1.3 bei David installiert (Installer von GitHub über den Browser geladen). Nächster Schritt: libresprite-mcp (v0.1.3, mcp.js geprüft: spricht nur mit localhost:64823) oder direkt zeichnen.

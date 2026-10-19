@@ -306,13 +306,22 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      *
      * NOTE: This is the entry point for the polling loop.
      */
-    function exec() {
-        if (!polling) return;
+    // Genau eine Abfrage-Schleife: jede Schleife hat eine Nummer, ältere beenden sich still.
+    let _loop = 0;
+    function exec(loop) {
+        if (loop === undefined) loop = _loop;
+        if (!polling || loop !== _loop) return;
         getScript(script => {
+            if (!polling || loop !== _loop) return;
+            if (!script) {
+                // Kein Befehl (Server liefert null, wenn eine andere Abfrage ihn schon geholt hat):
+                // nichts zurückschicken, sonst hielte der Server das für die Ausgabe eines Befehls.
+                schedule('poll', 10);
+                return;
+            }
             output = ''; // sanity reset
             runScript(script);
-            if (script && !output) output = '(Skript ausgeführt, keine Ausgabe)';
-            if (!script && _lastGetError) output = '[mcp] Abruf fehlgeschlagen: ' + _lastGetError;
+            if (!output) output = '(Skript ausgeführt, keine Ausgabe)';
             postOutput();
         });
     }
@@ -323,7 +332,8 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
     function startPolling() {
         if (polling) return;
         polling = true;
-        exec();
+        _loop++;
+        exec(_loop);
     }
 
     /**
@@ -331,6 +341,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      */
     function stopPolling() {
         polling = false;
+        _loop++;
     }
 
     /**

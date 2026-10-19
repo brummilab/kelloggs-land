@@ -110,11 +110,16 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      * @param {Function} cb - callback function to handle the response
      */
     // Jede Anfrage bekommt einen eigenen Schlüssel; fertig ist sie, sobald „<schlüssel>_status“ gesetzt ist.
+    // Fehlersuche: Schritte in die Konsole von LibreSprite schreiben (DEBUG = false schaltet es ab)
+    const DEBUG = true;
+    let _dbgCount = 0;
+    function _dbg(msg) { if (DEBUG && _dbgCount++ < 60) global.console.log('[mcp] ' + msg); }
     let _reqId = 0;
     let _pending = [];
     function _request(url, args, cb) {
         const key = '_mcp_req_' + (++_reqId);
-        storage.fetch.apply(storage, [url, key].concat(args));
+        _dbg('fetch ' + url + ' -> ' + key);
+        try { storage.fetch.apply(storage, [url, key].concat(args)); } catch (e) { _dbg('fetch Fehler: ' + e); }
         _pending.push({ key: key, cb: cb, tries: 0 });
         app.yield('_mcp_wait', 2);
     }
@@ -124,6 +129,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         for (let i = 0; i < _pending.length; i++) {
             const p = _pending[i];
             const status = storage.get(p.key + '_status');
+            if (p.tries % 30 === 0) _dbg('warte ' + p.key + ' status=' + status + ' versuch=' + p.tries);
             if (status !== undefined && status !== null && status !== '') done.push({ p: p, status: status });
             else if (++p.tries > 600) done.push({ p: p, status: 0 });
             else still.push(p);
@@ -346,6 +352,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      */
     function onEvent(event) {
         // Offene Anfragen bei jedem Ereignis prüfen (Fertig-Ereignisse heißen je nach Version anders)
+        if (event !== '_mcp_wait' || _dbgCount < 5) _dbg('Ereignis: ' + event);
         if (_pending.length) _checkPending();
         switch (event) {
             case '_mcp_wait':

@@ -320,9 +320,14 @@ Scene.prototype.snapshot = function (extra = 53) {
     sprites.push({ k, x: s.x - img.hx, y: s.y - img.hy, w: img.w, h: img.h, flash: (s.flags & 0x100) ? 1 : 0 });
   }
   // Spielschleife steht (Infofenster, Pause): Mitte aus dem Original; anderer Bildschirm: kein Level
+  // Infofenster: das Spiel zeichnet die Szene dabei nicht ganz still (einzelne Bilder laufen weiter).
+  // Darum mit Nachlauf: nach jedem stehenden Bild noch 0,6 s die Mitte aus dem Original zeigen,
+  // sonst springt das Bild zwischen Fenster und Level hin und her (Flackern).
   let overlay = null;
-  if (!(m.time - f.t > 0.1)) this.offLevel = 0;
-  if (m.time - f.t > 0.1) {
+  const stalled = m.time - f.t > 0.1;
+  if (stalled) this.holdUntil = m.time + 0.6;
+  else if (!(m.time < (this.holdUntil || 0))) { this.offLevel = 0; this.isOff = false; }
+  if (stalled || m.time < (this.holdUntil || 0)) {
     const pal = vga.palette32();
     let diff = 0, total = 0;
     for (let y = 0; y < rows; y++) {
@@ -338,7 +343,11 @@ Scene.prototype.snapshot = function (extra = 53) {
     }
     // Erst nach mehreren Bildern hintereinander als „anderer Bildschirm“ werten, sonst flackert es
     // beim Öffnen des Infofensters (einzelne Bilder mit Übergang)
-    if (diff > total * 0.5) { if (++this.offLevel > 20) return null; } else this.offLevel = 0;
+    // ebenfalls mit Nachlauf in beide Richtungen: erst nach 20 Bildern „kein Level“, und zurück erst
+    // nach 20 passenden Bildern (sonst wechselt die Anzeige zwischen Breitbild und 4:3 hin und her)
+    if (diff > total * 0.5) { this.onLevel = 0; if (++this.offLevel > 20) this.isOff = true; }
+    else { this.offLevel = 0; if (this.isOff && ++this.onLevel > 20) this.isOff = false; }
+    if (this.isOff) return null;
     overlay = new Uint8Array(orig.rgba.buffer.slice(orig.rgba.byteOffset, orig.rgba.byteOffset + 320 * rows * 4));
   }
   const pal = new Uint8Array(vga.palette32().slice().buffer);

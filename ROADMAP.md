@@ -33,7 +33,7 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ✅ HD mode: sharp-bilinear pixels for the playfield, xBR-lv2 for status bar and info windows (toggle "Grafik: HD / Pixel")
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
 - ✅ Graphics workshop: export tiles and sprites, load hand-made HD packs (4×, recoloured for fades, water and flashes)
-- 🚧 Hand-drawn HD art for level 1 (Tony, key tiles) as a first HD pack — done so far: question-mark block, door
+- 🚧 Hand-drawn HD art for level 1 (Tony, key tiles) as a first HD pack — done so far: question-mark block, door, leaf row
 - ⬜ Export of all sprite frames without having seen them in play; animated tiles; menus and status bar replaceable
 
 ## Phase 4: Recompiler ⬜

@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: LibreSprite 1.3 bei David installiert (Installer von GitHub über den Browser geladen). Nächster Schritt: libresprite-mcp (v0.1.3, mcp.js geprüft: spricht nur mit localhost:64823) oder direkt zeichnen.
 - 18.10.2026: HD-Grafik soll ins Repo (Davids Wunsch): Ordner web/hd/, Liste per tools/hd-index.py (läuft beim Veröffentlichen und in serve.py), Webseite lädt sie für alle; abschaltbar, eigene Bilder gehen vor. Bisher noch keine Bilder drin.
 - 18.10.2026: Export verbessert: Dateien nummeriert (NNN_t_…), Übersichtsblätter für Kacheln und Sprites mit Nummern. David will selbst zeichnen.
 - 18.10.2026: KI-Variante von David abgelehnt, Punkt 3 umgesetzt: Grafik-Werkstatt im Browser. Export aller Kacheln des Levels und gesehenen Sprites als PNG (Original + 4-fach-Vorlage, Übersichtsblatt), Import eines HD-Pakets (Ordner/ZIP), Ersatz über Inhalts-Kennung, Spielfeld dann in 4-facher Auflösung, automatisches Umfärben (Einblenden, Wasser, Aufblitzen), Speicherung im Browser. Test im Headless-Chromium mit Test-Paket ok. Anleitung docs/HD-PAKET.md. Auch 4:3 läuft jetzt über WebGL.

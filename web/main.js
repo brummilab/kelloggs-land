@@ -7,6 +7,14 @@ const $ = (id) => document.getElementById(id);
 // App-Modus (Android-App, ?app=1): Spieldateien liegen mit in der App (../game/), Touch-Steuerung
 const APP = new URLSearchParams(location.search).has('app');
 if (APP) document.body.classList.add('app');
+// App-Version und Ergebnis der Update-Prüfung (setzt die Android-App über window.__upd)
+const APPVER = new URLSearchParams(location.search).get('v');
+window.kelloggsShowUpdate = () => {
+  const el = $('appver'); if (!APP || !el) return;
+  el.textContent = 'Version ' + (APPVER || '?') + (window.__upd ? ' · ' + window.__upd : '');
+  el.hidden = false;
+};
+window.kelloggsShowUpdate();
 const canvas = $('screen'), ctx = canvas.getContext('2d');
 const off = document.createElement('canvas'), offCtx = off.getContext('2d');
 let worker = null, started = false;

@@ -54,9 +54,10 @@ final class Updater {
                         }
                     }
                 }
-                if (bestUrl == null) return;
+                if (bestUrl == null) { status("aktuell"); return; }
                 SharedPreferences prefs = act.getSharedPreferences("update", Activity.MODE_PRIVATE);
-                if (prefs.getInt("skip", 0) == best) return;
+                if (prefs.getInt("skip", 0) == best) { status(bestName + " übersprungen"); return; }
+                status(bestName + " verfügbar");
                 final String name = bestName, url = bestUrl; final int code = best;
                 act.runOnUiThread(() -> new AlertDialog.Builder(act)
                         .setTitle("Update verfügbar")
@@ -66,9 +67,13 @@ final class Updater {
                         .setNegativeButton("Diese überspringen", (d, w) -> prefs.edit().putInt("skip", code).apply())
                         .show());
             } catch (Exception e) {
-                // offline or GitHub not reachable: just play
+                status("Update-Prüfung fehlgeschlagen (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")");
             }
         }).start();
+    }
+
+    private void status(String text) {
+        if (act instanceof MainActivity) act.runOnUiThread(() -> ((MainActivity) act).showUpdateStatus("Updates: " + text));
     }
 
     private int currentCode() {

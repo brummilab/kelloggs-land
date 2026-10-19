@@ -15,6 +15,13 @@ import androidx.webkit.WebViewClientCompat;
 /** Test app: the browser version of the game (assets/web) in a full-screen WebView, game files in assets/game. */
 public class MainActivity extends Activity {
     private WebView web;
+    private String updateStatus = "Suche Updates …";
+
+    /** Show the result of the update check on the start screen (also after the page has loaded). */
+    void showUpdateStatus(String text) {
+        updateStatus = text;
+        web.evaluateJavascript("window.__upd=" + org.json.JSONObject.quote(text) + ";window.kelloggsShowUpdate&&kelloggsShowUpdate()", null);
+    }
 
     @Override
     protected void onCreate(Bundle state) {
@@ -37,8 +44,10 @@ public class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return loader.shouldInterceptRequest(request.getUrl());
             }
+            @Override
+            public void onPageFinished(WebView view, String url) { showUpdateStatus(updateStatus); }
         });
-        web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html?app=1");
+        web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html?app=1&v=" + android.net.Uri.encode(BuildConfig.VERSION_NAME));
         new Updater(this).checkInBackground();   // newer release on GitHub? offer it
     }
 

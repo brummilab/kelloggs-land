@@ -24,7 +24,7 @@ For the internal Android test build, `gamedata/` holds the maintainer's own copy
 
 - Every push to `main` that changes `web/`, `android/` or `gamedata/` builds the app and publishes it automatically as a new pre-release with the next version (0.4-test, 0.5-test, …) under [Releases](../../releases), with the list of changes (workflow *Release*). It can also be run by hand (Actions → Release → Run workflow, optionally with a version). The workflow *Android* (by hand) still puts a build on the branch `android-build`.
 - Install: copy the APK to the phone and open it (allow installing from this source once). Play Protect may warn (test signature).
-- **Updates in the app:** on every start the app looks for a newer release on GitHub (pre-releases included) and offers to download and install it ("Installieren", "Später", "Diese überspringen"). All builds are signed with the same test key `android/test.keystore` (internal test app only), so new versions install over the old one. Versions before 0.5-test were signed with changing keys: uninstall those once.
+- **Updates in the app:** on every start the app looks for a newer release on GitHub (pre-releases included) and offers to download and install it ("Installieren", "Später", "Diese überspringen"). All builds are signed with the same test key `android/test.keystore` (internal test app only), so new versions install over the old one. Versions before 0.5-test were signed with changing keys: uninstall those once. The start screen shows the installed version and the result of the update check.
 - Without `gamedata/`, `tools/android/pack.py` adds a local game copy to an unsigned build and signs it.
 
 ## What we know about START.EXE

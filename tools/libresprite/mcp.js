@@ -1,9 +1,12 @@
+///permission net.fetch
 /**
  * Source: https://github.com/Snehil-Shah/libresprite-mcp (v0.1.3, GPL-2.0)
  *
  * Angepasst für LibreSprite 1.3 (Kellogg's Land HD, 19.10.2026), ebenfalls GPL-2.0:
  * - globales Objekt ohne `this` ermitteln (in 1.3 ist `this` im Skript undefiniert)
  * - Relay über 127.0.0.1 statt localhost (Server lauscht nur auf IPv4)
+ * - erste Zeile `///permission net.fetch`: ohne diese Freigabe blockiert LibreSprite 1.3 storage.fetch
+ * - Ereignis-Handler zusätzlich ausdrücklich mit setEventHandler setzen
  * - Antworten von storage.fetch nicht nur über das Ereignis „<schlüssel>_fetch“ erkennen, sondern
  *   zusätzlich durch Nachsehen bei jedem Takt (app.yield) und bei jedem anderen Ereignis
  */
@@ -419,4 +422,5 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         }
     }
     global.onEvent = onEvent;
+    if (typeof setEventHandler === 'function') setEventHandler(onEvent);
 })();

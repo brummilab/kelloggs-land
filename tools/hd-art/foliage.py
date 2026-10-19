@@ -17,19 +17,21 @@ DARKER = {LIME: GREEN, GREEN: DGREEN, OCH: BRN, BRN: DBRN, YEL: LIME}
 TILES = [38, 39, 40, 41, 42, 43, 46, 47, 48, 49, 50]
 S = 4
 
-def redraw(C):
-    """C: HxWx3 original colours of an area. Returns the 4x redraw."""
+def redraw(C, families=None):
+    """C: HxWx3 original colours of an area. families: list of colour sets, later ones are drawn on top
+    (default: wood, then leaves). Pixels in no family and not sky stay black (outlines, gaps). Returns the 4x redraw."""
     H, W, _ = C.shape
+    families = families or [WOOD, LEAF]
     fam = np.zeros((H, W), np.int8)
-    for c in LEAF: fam[np.all(C == c, axis=2)] = 1
-    for c in WOOD: fam[np.all(C == c, axis=2)] = 2
+    for k, fs in enumerate(families, 1):
+        for c in fs: fam[np.all(C == c, axis=2)] = k
     out = np.kron(C, np.ones((S, S, 1), np.uint8))
     sky = np.kron(np.all(C == SKY, axis=2), np.ones((S, S), bool))
     out[:] = BLACK; out[sky] = SKY
     # smooth the sky / black boundary too
     skym = ndimage.gaussian_filter(sky.astype(float), 1.6) > 0.5
     out[skym] = SKY; out[~skym] = BLACK
-    for f in (2, 1):                                   # branches first, leaves on top
+    for f in range(1, len(families) + 1):              # in order: later families on top
         lab, n = ndimage.label(fam == f)
         for k in range(1, n + 1):
             inside = lab == k

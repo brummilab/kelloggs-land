@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HD art: row of leaves on the ground (level 1), tiles 063 064 065 066 067 (level-1 export numbering).
+"""HD art: row of leaves on the ground (level 1), tiles 063 064 065 066 067, row end 068 (level-1 export numbering).
     python3 tools/hd-art/leaves.py tiles.json web/hd [preview.png]
 tiles.json: level export (palette + tile pixels), see tools/hd-art/README.md.
 The leaves repeat every 32 original pixels (64/66 left half, 65/67 right half). Each leaf is drawn as a
@@ -51,11 +51,11 @@ def noise(i, j, seed):
 LIGHTER = {DGREEN: GREEN, GREEN: LIME, LIME: YEL}
 DARKER = {LIME: GREEN, GREEN: DGREEN, YEL: LIME}
 
-def period_colour(u, v):
+def period_colour(u, v, leaves=None):
     c = BLACK
     # branch along the top
     if v < 1.6 + 0.35 * math.sin(u * 0.9) : c = DBRN if (v < 0.9 and (u * 0.37) % 3 < 1.7) else BRN
-    for lf in LEAVES:
+    for lf in (leaves or LEAVES):
         (cx, cy), r, (tx, ty) = lf['c'], lf['r'], lf['tip']
         for off in (-P, 0, P):
             uu = u - off
@@ -84,22 +84,24 @@ def period_colour(u, v):
             if 'spot' in lf and math.hypot(uu - lf['spot'][0], v - lf['spot'][1]) < 0.55: c = WHITE
     return c
 
-def render_tile(px_orig, x0):
-    """64x64 tile: leaves of the period from x0 (orig px); rows 14-15 come from the original where no leaf is."""
+def render_tile(px_orig, x0, leaves=None):
+    """64x64 tile: leaves of the period from x0 (orig px). In the bottom rows, where no leaf is, the brown bits of
+    the original stay (they belong to the wall underneath); the original's cut-off green leaf bits do not."""
     img = Image.new('RGB', (64, 64))
     for y in range(64):
         for x in range(64):
             u, v = x0 + (x + .5) / 4, (y + .5) / 4
-            c = period_colour(u, v)
+            c = period_colour(u, v, leaves)
             if v >= 13.75 and c == BLACK:
-                c = PAL[px_orig[int(v) * 16 + int((x + .5) / 4)]]
+                o = PAL[px_orig[int(v) * 16 + int((x + .5) / 4)]]
+                if o in (BRN, DBRN, (206, 157, 60), SKY): c = o
             img.putpixel((x, y), c)
     return img
 
 if __name__ == '__main__':
     d = json.load(open(sys.argv[1])); out = sys.argv[2]
     PAL = [((c & 255), (c >> 8) & 255, (c >> 16) & 255) for c in d['pal']]
-    T = {n: d['tiles'][n] for n in (63, 64, 65, 66, 67)}
+    T = {n: d['tiles'][n] for n in (63, 64, 65, 66, 67, 68)}
     tiles = {64: render_tile(T[64]['px'], 0), 66: render_tile(T[66]['px'], 0),
              65: render_tile(T[65]['px'], 16), 67: render_tile(T[67]['px'], 16)}
     # 063: start of the row; like 065, but the sky shows on the left where the original has it
@@ -109,9 +111,20 @@ if __name__ == '__main__':
             o = T[63]['px'][(y // 4) * 16 + x // 4]
             if PAL[o] == SKY: t63.putpixel((x, y), PAL[o])
     tiles[63] = t63
+    # 068: end of the row on the right: leaf A and a smaller last leaf that ends inside the tile, then sky
+    end_leaves = [l for l in LEAVES if l['c'][0] < 12] + [
+        dict(c=(12.2, 5.0), r=3.3, tip=(9.6, 12.4), bend=-0.5, lit=0.6, seed=4)]
+    t68 = render_tile(T[68]['px'], 0, end_leaves)
+    for y in range(64):
+        for x in range(64):
+            u, v = (x + .5) / 4, (y + .5) / 4
+            o = T[68]['px'][(y // 4) * 16 + x // 4]
+            if u > 15.2 and PAL[o] == SKY: t68.putpixel((x, y), SKY)
+            elif u > 15.6 and v > 1.6 and t68.getpixel((x, y)) == BLACK: t68.putpixel((x, y), SKY)
+    tiles[68] = t68
     for n, im in tiles.items(): im.save(os.path.join(out, f"t_{T[n]['hash']}.png"))
     if len(sys.argv) > 3:
-        seq = [63, 64, 65, 66, 67, 64, 65, 66]
+        seq = [63, 64, 65, 66, 67, 64, 65, 68]
         hd = Image.new('RGB', (64 * len(seq), 64)); orig = Image.new('RGB', (16 * len(seq), 16))
         for k, n in enumerate(seq):
             hd.paste(tiles[n], (k * 64, 0))

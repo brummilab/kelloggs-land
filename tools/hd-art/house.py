@@ -124,7 +124,13 @@ def tile_colour(n, u, v):
     if n == 44:
         c = left_post(u, v, 8.0) if v > 2.6 else (BRN if u < 0.8 else None)
         if c and v > 2.6 and u >= 1.6 and v < 8.0: c = None
-        if c is None and v > 3.7: c = stone(u, v, 1.6, 2.6, 4.6, 7.4, 'L')   # small stone, its top under the moss
+        # small stone reaching up into the moss: moss tufts and moss dots lie on top of it
+        st = stone(u, v, 1.6, 2.2, 5.0, 7.8, 'L') if c is None else None
+        if st is not None:
+            mo = moss(u, v)
+            # moss hangs over the upper part of the stone; lower down only a few moss dots on it
+            over = v < 3.4 + 0.9 * math.sin(u * 2.3) or (v < 4.8 and noise(int(u * 2) * 3 + int(v * 2), 12) < 0.45)
+            return mo if mo is not None and over else st
         return c or moss(u, v) or WHITE
     if n == 28:
         if u > 15.2: return DBRN

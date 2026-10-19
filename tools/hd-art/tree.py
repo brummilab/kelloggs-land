@@ -111,9 +111,13 @@ def stone_lump(u, v, x0, y0, x1, y1):
     if d > -0.45: return DBRN
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     hx, hy = (u - cx) / ((x1 - x0) / 2), (v - cy) / ((y1 - y0) / 2)     # -1..1 across the stone
-    lum = 0.55 - 0.42 * hx - 0.5 * hy - 0.25 * (hx * hx + hy * hy)
-    if math.hypot(hx + 0.35, hy + 0.4) < 0.28: return WHITEC          # glint
-    return WHITEC if lum > 0.85 else YELC if lum > 0.48 else OCH if lum > 0.12 else BRN
+    lum = 0.45 - 0.45 * hx - 0.55 * hy - 0.3 * (hx * hx + hy * hy)
+    # more shadow like the original: stones next to the dark door opening and low stones lie in shadow
+    ao = max(0.0, 1 - max(0.0, 18.5 - min(u, 64 - u)) / 9.0) if v > 12 else 0.0
+    lum -= 0.35 * ao + 0.12 * max(0.0, (v - 40) / 24)
+    if lum > 0.2 and math.hypot(hx + 0.35, hy + 0.4) < 0.24: return WHITEC   # glint
+    if lum < -0.2: return DBRN if (int(u * 2) + int(v * 2)) % 2 else BRN     # deep shadow, dithered like the original
+    return WHITEC if lum > 0.9 else YELC if lum > 0.5 else OCH if lum > 0.15 else BRN
 
 def gate(Cg):
     """stone gateway with the red door (tiles 096-131 of area 2): 64 x 64 original pixels -> 256 x 256.
@@ -148,8 +152,8 @@ def gate(Cg):
                     if f < 1:
                         side = (u - cx) * out
                         if f > 0.9: c = BLACK
-                        elif f > 0.62: c = DRED if (int(u * 2) + int(v * 2)) % 2 else DBRN
-                        elif side > 0.6 and abs(v - cy) < hh * 0.6: c = PINK
+                        elif f > 0.62 or side < -1.2: c = DRED if (int(u * 2) + int(v * 2)) % 2 else DBRN
+                        elif side > 1.3 and abs(v - cy) < hh * 0.55: c = PINK
                         else: c = DRED
             img[y, x] = c
     return img

@@ -5,6 +5,9 @@ import { GLRenderer } from './gl.js';
 import { exportPack, readPack, savePackFiles, loadPackFiles, clearPackFiles } from './hdpack.js';
 
 const $ = (id) => document.getElementById(id);
+// App-Modus (Android-App, ?app=1): Spieldateien liegen mit in der App (../game/), Touch-Steuerung, kein HD-Paket
+const APP = new URLSearchParams(location.search).has('app');
+if (APP) document.body.classList.add('app');
 const canvas = $('screen'), ctx = canvas.getContext('2d');
 const off = document.createElement('canvas'), offCtx = off.getContext('2d');
 let worker = null, started = false;
@@ -13,6 +16,7 @@ let audio = null, audioNode = null, soundOn = false;
 let wideOn = false, glr = null, glActive = false;
 try { glr = new GLRenderer(document.getElementById('gl')); } catch (e) { glr = null; }
 try { wideOn = localStorage.getItem('kelloggs-wide') === '1'; } catch {}
+if (APP) { try { if (localStorage.getItem('kelloggs-wide') === null) wideOn = true; } catch { wideOn = true; } }
 function setWide(on) {
   wideOn = on;
   canvas.width = on ? 1280 : 640; canvas.height = on ? 720 : 480;
@@ -36,6 +40,7 @@ function glLoop() {
 // Grafik: HD (xBR-Kantenglättung) oder Pixel (Original-Pixel)
 let gfxMode = 'hd';
 try { gfxMode = localStorage.getItem('kelloggs-gfx') || 'hd'; } catch {}
+if (APP) gfxMode = 'pixel';
 function setGfx(mode) {
   gfxMode = mode; if (glr) glr.mode = mode;
   const b = document.getElementById('gfx');
@@ -101,6 +106,11 @@ async function start(fileList) {
   setStatus('Lese Dateien …');
   let files;
   try { files = await collect(fileList); } catch (e) { setStatus(`Die Datei ließ sich nicht lesen: ${e.message}`, 'error'); return; }
+  startFiles(files);
+}
+
+function startFiles(files) {
+  if (started) return;
   const missing = NEEDED.filter((n) => !files[n]);
   if (missing.length) {
     setStatus(`Es fehlt: ${missing.join(', ')}. Wähle den entpackten Spielordner oder die ZIP-Datei mit diesen Dateien.`, 'error');
@@ -248,7 +258,7 @@ async function usePack(entries, save) {
 }
 // Mitgeliefertes Paket: web/hd/index.json (beim Veröffentlichen von tools/hd-index.py erzeugt)
 async function loadBuiltin() {
-  if (!glr) return;
+  if (!glr || APP) return;
   try {
     const r = await fetch(new URL('./hd/index.json', import.meta.url)); if (!r.ok) return;
     const names = (await r.json()).files || [];
@@ -268,3 +278,28 @@ $('hdclear').addEventListener('click', async () => { userPack = new Map(); try {
 $('hdbuiltin').addEventListener('change', (e) => { builtinOn = e.target.checked; try { localStorage.setItem('kelloggs-hd-builtin', builtinOn ? '1' : '0'); } catch {} applyPacks(); });
 loadBuiltin();
 loadPackFiles().then((e) => { if (e && e.length) usePack(e, false); }).catch(() => {});
+
+// ---------------------------------------------------------------- App-Modus: Start, Touch-Tasten, Zurück-Taste
+function sendScan(scan, down) { if (worker) worker.postMessage({ type: 'key', down, scan }); }
+window.kelloggsKey = (scan) => { sendScan(scan, true); setTimeout(() => sendScan(scan, false), 120); };
+if (APP) {
+  $('tapstart').addEventListener('click', async () => {
+    $('tapstart').disabled = true; $('tapstart').textContent = 'Lade …';
+    setSound(true);
+    try {
+      const base = new URL('../game/', location.href);
+      const names = await (await fetch(new URL('files.json', base))).json();
+      const files = {};
+      for (const n of names) files[n.toUpperCase()] = new Uint8Array(await (await fetch(new URL(n, base))).arrayBuffer());
+      startFiles(files);
+    } catch (e) { $('tapstart').textContent = 'Spieldateien fehlen in der App'; }
+  });
+  for (const b of document.querySelectorAll('#touch .tbtn[data-scan]')) {
+    const scan = +b.dataset.scan; let ids = new Set();
+    const on = (e) => { e.preventDefault(); if (!ids.size) sendScan(scan, true); ids.add(e.pointerId); b.dataset.on = ''; try { b.setPointerCapture(e.pointerId); } catch {} };
+    const off = (e) => { if (!ids.delete(e.pointerId)) return; if (!ids.size) { sendScan(scan, false); delete b.dataset.on; } };
+    b.addEventListener('pointerdown', on);
+    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(t, off);
+  }
+  $('twide').addEventListener('pointerdown', (e) => { e.preventDefault(); if (!$('wide').disabled) setWide(!wideOn); });
+}

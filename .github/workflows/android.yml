@@ -1,0 +1,27 @@
+# Builds the Android test app (WebView around web/, without HD art and WITHOUT the game files).
+# The game files are added afterwards from your own copy: tools/android/pack.py (they never go into the repo).
+name: Android
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android/**', 'web/*.js', 'web/index.html', '.github/workflows/android.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - run: gradle -p android assembleRelease --no-daemon
+      - name: tools to add the game files and sign (zipalign, apksigner)
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          mkdir -p out/build-tools && cp -r $BT/. out/build-tools/
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/
+      - uses: actions/upload-artifact@v4
+        with: { name: kelloggs-android, path: out, retention-days: 7 }

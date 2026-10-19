@@ -34,7 +34,7 @@ Where Kellogg's Land HD stands and what comes next. ✅ done · 🔨 in progress
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
 - ✅ Graphics workshop: export tiles and sprites, load hand-made HD packs (4×, recoloured for fades, water and flashes)
 - ✅ Hand-drawn HD art for all level-1 tiles (185 tiles; only the three plain-colour tiles stay as they are): question-mark block, door, leaf row, stone pillars and walls, windows, roof, house wall, ground, grass strip, climbing-plant wall, bridge, cloud, big tree, stone gate, cornflakes, floating leaf platform, slope, grass tufts, shadows in the rock (foliage of the climbing-plant wall and the tree crown redrawn in the style of the leaf row)
-- 🚧 Hand-drawn HD art for Tony and the other sprites
+- 🚧 Hand-drawn HD art for Tony and the other sprites — tooling ready (`tools/hd-art/tony.py`: 26 own frames, 25 mirrored twins generated automatically); Tony is drawn by hand
 - ⬜ Export of all sprite frames without having seen them in play; animated tiles; menus and status bar replaceable
 
 ## Phase 4: Recompiler ⬜

@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
             }
         });
         web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html?app=1");
+        new Updater(this).checkInBackground();   // newer release on GitHub? offer it
     }
 
     private void immersive() {

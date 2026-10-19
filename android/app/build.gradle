@@ -9,13 +9,25 @@ android {
         versionCode((project.findProperty('appCode') ?: '1') as int)
         versionName(project.findProperty('appVersion') ?: 'dev')
     }
-    buildTypes { release { minifyEnabled false } }
+    // one fixed test key for all builds, so a new version can be installed over the old one (in-app update);
+    // only for this internal test app
+    signingConfigs {
+        test { storeFile file('../test.keystore'); storePassword 'kelloggs'; keyAlias 'test'; keyPassword 'kelloggs' }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.test }
+        release { minifyEnabled false; signingConfig signingConfigs.test }
+    }
+    buildFeatures { buildConfig true }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     // the web version (web/) goes to assets/web (task copyWeb), the game files from gamedata/ (if the folder is
     // there) to assets/game with a list files.json (task copyGame); the page loads them itself (web/main.js, ?app=1)
     sourceSets { main { assets.srcDirs = ["$buildDir/webassets"] } }
 }
-dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.core:core:1.13.1'
+}
 tasks.register('copyWeb', Copy) {
     from("$rootDir/../web")
     into "$buildDir/webassets/web"

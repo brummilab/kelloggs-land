@@ -30,12 +30,20 @@ def seg(u, v, ax, ay, bx, by):
 
 POSTS = [(1.6, 6.2), (96.8, 101.4)]
 def lantern(u, v, cx):
-    """blue lantern head with a lilac glass and a white glint"""
-    if 0.4 < v < 11 and abs(u - cx) < 3.6 - max(0, v - 8) * 0.8:
-        if abs(u - cx) > 2.6 - max(0, v - 8) * 0.8 or v < 1.3 or v > 9.6: return BLUE
-        if math.hypot(u - cx + 0.9, v - 3.2) < 0.7: return WHITE
-        return LILAC if u < cx + 0.4 else PURP
-    return None
+    """lantern like the original: round-topped head with a black outline, blue frame, lilac/purple glass with
+    a white glint, narrowing at the bottom into the post"""
+    if v < 0.2 or v > 11.8: return None
+    if v < 3.6:
+        d = math.hypot(u - cx, v - 3.6) - 3.4            # round top
+    elif v < 9.0:
+        d = abs(u - cx) - (3.4 - (v - 3.6) * 0.15)       # body, slightly narrowing
+    else:
+        d = abs(u - cx) - (2.2 - (v - 9.0) * 0.4)        # tail into the post
+    if d > 0: return None
+    if d > -0.45: return BLACK
+    if d > -1.15 or v > 9.2 or abs(u - cx) < 0.3 or abs(v - 6.2) < 0.3: return BLUE   # frame and glazing bars
+    if math.hypot(u - cx + 1.3, v - 3.3) < 0.75: return WHITE
+    return LILAC if (u < cx and v < 6.2) else PURP
 
 def colour(u, v):
     # lanterns and posts
@@ -51,9 +59,11 @@ def colour(u, v):
     vines = [(7.0, 15.0, 13.0, 9.5)] + [(26 + 16 * k, 9.5, 31 + 16 * k, 14.5) for k in range(5)]
     for (ax, ay, bx, by) in vines:
         d, t = seg(u, v, ax, ay, bx, by)
-        if d < 0.75 - 0.35 * t:
-            tip = t > 0.8 if by > ay else t < 0.2
-            return YEL if tip else (LIME if d < 0.3 else GREEN)
+        w = 1.0 - 0.3 * t
+        if d < w:
+            tip = t > 0.78 if by > ay else t < 0.22
+            if d > w - 0.35: return DGREEN                      # dark outline like the original
+            return YEL if tip else (LIME if d < 0.25 else GREEN)
     # top rail and bottom rail
     if 6.2 < u < 96.8:
         if 4.2 <= v <= 9.0: return wood_h(v, 4.2, 9.0)
@@ -78,10 +88,25 @@ def colour(u, v):
         if 45.6 <= u <= 51.4: return wood_v(u, 45.6, 51.4)               # middle post between the panels
         px0, px1 = (20.6, 45.6) if u < 45.6 else (51.4, 76.4)
         if v < 36.8 or u < px0 + 0.8 or u > px1 - 0.8: return DBRN       # groove around the panel
-        if 1.2 < r_out < 1.5: return WHITE if (u < cx) == (r_out < 1.35) else YEL
-        if 1.5 <= r_out < 1.65: return DBRN
-        return OCH if (v < 39 and u < px0 + 6) else BRN
+        # inside the panels: the original carvings (dotted texture, knot, the light band along the arch),
+        # upscaled smoothly
+        if PANEL is not None:
+            return tuple(PANEL[min(PANEL.shape[0] - 1, int((v - 32) * 4)), min(PANEL.shape[1] - 1, int((u - 16) * 4))])
+        return BRN
     return None
+
+PANEL = None
+
+def smooth_up(C, S=4):
+    from scipy import ndimage
+    cols = [tuple(c) for c in np.unique(C.reshape(-1, 3), axis=0)]
+    best = None; out = np.zeros((C.shape[0] * S, C.shape[1] * S, 3), np.uint8)
+    for c in cols:
+        ind = np.all(C == c, axis=2).astype(float)
+        U = ndimage.zoom(ndimage.gaussian_filter(ind, 0.5, mode='nearest'), S, order=3, mode='nearest', grid_mode=True)
+        if best is None: best = U; out[:] = c
+        else: sel = U > best; best[sel] = U[sel]; out[sel] = c
+    return out
 
 TILE_POS = {163: (0, 0), 164: (1, 0), 165: (6, 0), 175: (0, 1), 176: (1, 1), 177: (6, 1),
             180: (1, 2), 181: (2, 2), 182: (3, 2), 183: (4, 2), 185: (1, 3), 186: (4, 3)}
@@ -91,6 +116,7 @@ if __name__ == '__main__':
     d = json.load(open(sys.argv[1])); grid = json.load(open(sys.argv[2]))['grid']; out = sys.argv[3]
     pal = np.array([((c & 255), (c >> 8) & 255, (c >> 16) & 255) for c in d['pal']], np.uint8)
     tiles = [pal[np.array(t['px']).reshape(16, 16)] for t in d['tiles']]
+    PANEL = smooth_up(np.hstack([tiles[i] for i in (180, 181, 182, 183)]))
     for n, (tx, ty) in TILE_POS.items():
         img = Image.new('RGB', (64, 64))
         orig = tiles[n]

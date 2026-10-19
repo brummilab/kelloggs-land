@@ -99,8 +99,12 @@ def overlay_trunk(hd, C, x0, y0):
         for x in range(W):
             u = (x + 0.5) / 4
             c = trunk(u, v)
-            if c is None: continue
             o = tuple(C[int(v), int(u)])
+            if c is None:
+                # remove the original branch where the new one is drawn (no ghost lines), keep its leaf
+                if 76 <= u <= TL and 192 <= v <= 210 and o not in leaf and tuple(hd[y, x]) not in leaf:
+                    hd[y, x] = (0, 109, 238)
+                continue
             if tuple(hd[y, x]) in leaf and o in leaf: continue
             # where the trunk forks into the crown (above about v 186) the original's fork stays; the new trunk
             # fades in over 18 px with a fine pattern, so there is no straight seam

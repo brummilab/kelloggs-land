@@ -111,9 +111,9 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      */
     // Jede Anfrage bekommt einen eigenen Schlüssel; fertig ist sie, sobald „<schlüssel>_status“ gesetzt ist.
     // Fehlersuche: Schritte in die Konsole von LibreSprite schreiben (DEBUG = false schaltet es ab)
-    const DEBUG = false;
+    const DEBUG = true;
     let _dbgCount = 0;
-    function _dbg(msg) { if (DEBUG && _dbgCount++ < 60) global.console.log('[mcp] ' + msg); }
+    function _dbg(msg) { if (DEBUG && _dbgCount++ < 200) global.console.log('[mcp] ' + msg); }
     // In LibreSprite 1.3 kommen app.yield-Ereignisse nicht beim Skript an. Deshalb: setTimeout, wenn
     // vorhanden; sonst sofort weitermachen (die Fertig-Ereignisse von storage.fetch treiben die Schleife).
     function schedule(event, frames) {
@@ -140,7 +140,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         for (let i = 0; i < _pending.length; i++) {
             const p = _pending[i];
             const status = storage.get(p.key + '_status');
-            if (p.tries % 600 === 0) _dbg('warte ' + p.key + ' status=' + status + ' versuch=' + p.tries);
+            if (p.tries % 300 === 0) _dbg('warte ' + p.key + ' status=' + status + ' versuch=' + p.tries);
             if (status !== undefined && status !== null && status !== '') done.push({ p: p, status: status });
             else if (++p.tries > 1e9) done.push({ p: p, status: 0 });   // der Server hält Abfragen offen, bis ein Befehl kommt
             else still.push(p);
@@ -311,7 +311,9 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
     function exec(loop) {
         if (loop === undefined) loop = _loop;
         if (!polling || loop !== _loop) return;
+        _dbg('exec loop=' + loop + ' polling=' + polling);
         getScript(script => {
+            _dbg('script erhalten: ' + (script ? script.length + ' Zeichen' : 'leer') + ' loop=' + loop + '/' + _loop + ' polling=' + polling);
             if (!polling || loop !== _loop) return;
             if (!script) {
                 // Kein Befehl (Server liefert null, wenn eine andere Abfrage ihn schon geholt hat):
@@ -388,6 +390,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
              * Cleanup script.
              */
             case '_close':
+                _dbg('Fenster geschlossen -> Verbindung beendet');
                 active = false;
                 connected = false;
                 polling = false;

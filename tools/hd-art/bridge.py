@@ -97,7 +97,8 @@ def colour(u, v):
                 return LIME if u < cx - 0.5 else GREEN if u < x1 - 0.8 else DGREEN
             return wood_v(u, x0, x1, v, 3)
     # vines hanging from the top rail (leaf with a yellow tip)
-    vines = [(7.0, 15.0, 13.0, 9.5)] + [(26 + 16 * k, 9.5, 31 + 16 * k, 14.5) for k in range(5)]
+    # every vine reaches the next piece of wood (baluster or post)
+    vines = [(6.4, 15.0, 13.0, 9.5)] + [(26 + 16 * k, 9.5, 32.4 + 16 * k, 15.0) for k in range(4)] + [(90, 9.5, 96.6, 15.0)]
     for (ax, ay, bx, by) in vines:
         lx, ly = (bx, by) if by > ay else (ax, ay)            # the leaf hangs at the lower end
         dl = math.hypot((u - lx - 0.6) / 1.5, (v - ly - 0.9) / 1.0)

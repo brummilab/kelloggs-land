@@ -348,28 +348,14 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      * Paints the UI dialog based on the current state.
      */
     function paintUI() {
-        let label;
-        if (!connected) {
-            label = 'Discovering MCP servers... Make sure the libresprite-mcp server is running.';
-        } else if (polling) {
-            label = 'Connected to the libresprite-mcp server!';
-        } else {
-            label = 'Found an active libresprite-mcp server, "Connect" when you are ready!';
-        }
-        if (dialog) {
-            dialog.close();
-        }
+        // Das Fenster nur einmal bauen: Schließen und Neubauen löst in LibreSprite 1.3 ein „_close“-
+        // Ereignis aus, das die Verbindung wieder beendet hat. Verbunden wird automatisch.
+        if (dialog) return;
         dialog = app.createDialog();
         dialog.title = 'libresprite-mcp';
-        dialog.addLabel(label);
+        dialog.addLabel('Verbindung zu Claude: verbindet sich automatisch, sobald der Server läuft.');
         dialog.addBreak();
-        dialog.canClose = !connected || !polling;
-        if ( connected ) {
-            dialog.addButton(
-                polling ? 'Disconnect': 'Connect',
-                'toggle'
-            );
-        }
+        dialog.addLabel('Fenster offen lassen. Schließen beendet die Verbindung.');
     }
 
 

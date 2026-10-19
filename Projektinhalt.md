@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: Siebtes HD-Motiv im Repo: Hauswand (7 Kacheln: Moosrand 027/044/028, Eckpfosten mit Ecksteinen 051/055, Riss 054, Unkraut 062), von David abgenommen nach zwei Runden (Moos weicher und länger überblenden; kleiner Stein ragt ins Moos). Skript tools/hd-art/house.py.
 - 19.10.2026: Vergleichsseite für David (privates Artifact „Kellogg's Land HD-Vergleich“, https://claude.ai/artifact/LqfPLQ2cUjKU7wQYVdeDLJ): 4 Stellen aus Level 1 in voller HD-Größe, Umschalter Original/HD, Schieber, 1:1-Ansicht. Wird bei jedem neuen Motiv aktualisiert. Hauswand dort als Entwurf enthalten.
 - 19.10.2026: Sechstes HD-Motiv im Repo: rotes Strohdach (9 Kacheln: 014–021, 035), von David abgenommen. Gezeichnet als Strohbündel mit eigenen Farbzungen (dunkel → rot → rosa), weißen Haken-Spitzen, Sprenkeln, gedrehtem First. Erster Versuch mit vielen feinen Halmen sah wie Rauschen aus, verworfen. Skript tools/hd-art/roof.py.
 - 19.10.2026: Fünftes HD-Motiv im Repo: Bogenfenster (Kacheln 037 Bogen, 045 Scheiben, 056 unten mit Sims; groß = 037+045+056, klein = 037+056), von David abgenommen nach Nachbesserung (alle 4 Querstreben wie im Original, Seitenrahmen aus Holzblöcken). Skript tools/hd-art/window.py.

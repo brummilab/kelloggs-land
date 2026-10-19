@@ -36,8 +36,14 @@ def seg(u, v, ax, ay, bx, by):
 # trunk geometry in original pixels of area 1 (origin = map tile (10, 19)), measured from the original
 TL, TR = 105.5, 140.0                       # left / right edge of the trunk
 HOLE = (121.8, 205.0, 4.0, 8.0)            # knot hole: centre, half width, half height
-BRANCH = [((106.0, 205.0), (89.0, 201.5), 2.6, 1.3), ((89.0, 201.5), (84.5, 195.5), 1.1, 0.4),
-          ((90.0, 201.0), (80.5, 200.0), 0.9, 0.3)]
+# the branch on the left: a thin, slightly crooked branch with small twigs (polylines with width at start/end)
+BRANCH = [
+    ([(106.5, 205.6), (100.5, 204.4), (95.0, 203.0), (90.0, 202.2), (85.0, 201.4)], 1.5, 0.55),   # main branch
+    ([(95.5, 203.0), (92.5, 199.8), (89.8, 197.4), (87.6, 195.0)], 0.65, 0.22),                   # twig up
+    ([(90.0, 202.2), (87.5, 199.2), (85.0, 196.8)], 0.5, 0.2),                                    # second twig up
+    ([(86.8, 201.7), (83.4, 201.3), (80.8, 200.2)], 0.45, 0.18),                                  # tip
+    ([(99.5, 204.2), (98.6, 206.0), (97.4, 207.6)], 0.4, 0.18),                                   # small twig down
+]
 
 def trunk_edges(v):
     l = TL - max(0.0, 184.0 - v) * 1.2        # widens into the crown at the top
@@ -47,13 +53,21 @@ def trunk_edges(v):
 def trunk(u, v):
     """smooth, round trunk lit from the left: dark outline, ochre, wide white bark with ochre marks, ochre,
     brown, dark brown with fine dither, black on the shadow side"""
-    for (a, b, w0, w1) in BRANCH:
-        d, t = seg(u, v, a[0], a[1], b[0], b[1])
-        w = w0 + (w1 - w0) * t
-        if d < w:
-            side = (v - (a[1] + (b[1] - a[1]) * t))
-            if d > w - 0.35: return DBRN
-            return (238, 238, 238) if side < -w * 0.3 else OCH if side < w * 0.2 else BRN
+    for (pts, w0, w1) in BRANCH:
+        n = len(pts) - 1
+        for i in range(n):
+            (ax, ay), (bx, by) = pts[i], pts[i + 1]
+            d, t = seg(u, v, ax, ay, bx, by)
+            w = w0 + (w1 - w0) * (i + t) / n
+            if d < w:
+                # side of the branch: above (lit) or below (shadow)
+                nx, ny = -(by - ay), (bx - ax)
+                ln = math.hypot(nx, ny) or 1
+                side = ((u - ax) * nx + (v - ay) * ny) / ln          # > 0 below the branch
+                if d > w - 0.3: return DBRN
+                if side < -w * 0.35: return (238, 238, 238) if w > 0.9 else OCH
+                if side < w * 0.15: return OCH
+                return BRN
     if v < 168: return None
     l, r = trunk_edges(v)
     if not (l <= u <= r): return None
@@ -187,8 +201,9 @@ def gate(Cg):
             if c is None:
                 c = BLACK if (int(u * 2) + int(v * 2)) % 3 else DBRN    # dark wall / opening
                 # door panels: pointed red lenses, darker dithered red around them
-                for (cx, cy, hw, hh, out) in [(25.0, 29.0, 6.6, 13.2, -1), (38.5, 29.0, 6.6, 13.2, 1),
-                                              (25.0, 62.0, 6.6, 9.0, -1), (38.5, 62.0, 6.6, 9.0, 1)]:
+                # the two door wings almost meet in the middle, like in the original
+                for (cx, cy, hw, hh, out) in [(25.8, 29.0, 6.0, 13.2, -1), (37.7, 29.0, 6.0, 13.2, 1),
+                                              (25.8, 62.0, 6.0, 9.0, -1), (37.7, 62.0, 6.0, 9.0, 1)]:
                     f = abs(u - cx) / hw + ((v - cy) / hh) ** 2
                     if f < 1:
                         side = (u - cx) * out

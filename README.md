@@ -45,7 +45,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
 | `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate, HD mode with the xBR-lv2 pixel-art scaler | ✅ |
-| `web/hd/`, `tools/hd-index.py` | HD art shipped with the project (4× PNGs named by content hash), list generated on publish | ✅ (50 tiles: question-mark block, door, leaf row, stone pillars, windows, roof, house wall) |
+| `web/hd/`, `tools/hd-index.py` | HD art shipped with the project (4× PNGs named by content hash), list generated on publish | ✅ (57 tiles: question-mark block, door, leaf row, stone pillars, windows, roof, house wall, ground) |
 | `tools/hd-art/` | scripts that draw HD art (shapes + fixed palette), finished in LibreSprite | 🚧 |
 | `web/hdpack.js` | graphics workshop: export tiles/sprites as PNG + ZIP, load HD packs (own PNG decoder), keep them in IndexedDB | ✅ |
 | `web/scene.js`, `tools/hd-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |

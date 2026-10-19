@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: Rankenwand im Repo (11 Kacheln: 038–043, 046–050), von David abgenommen. Nah am Original: jedes Blatt/Zweigstück bleibt, glatte Umrisse, Lichtkante. Skript tools/hd-art/foliage.py. Offen: großer Baum (~60 Einzelkacheln), Holzbogen, Wolken, Sprites.
 - 19.10.2026: Graskante am Boden (187) im Repo, nach Davids Hinweis ohne Himmel hinter den Halmen (sonst blauer Streifen unter Mauern – eine Kachel weiß nicht, was über ihr liegt). Blätterreihe korrigiert: keine abgeschnittenen Blattreste an der Unterkante, rechtes Endstück 068 neu. Beides von David abgenommen.
 - 19.10.2026: Achtes HD-Motiv im Repo: Erdboden (080/081/087/088/089/090, nahtlos über 2×3 Kacheln) und Kantenstein (057), von David abgenommen. Felsen: erste Fassung (Form und Farben vom Original, glatte Ränder, feineres Raster) – die runde, plastische Variante war David zu weit weg vom Original (bleibt als rocks() im Skript). Kantenstein mit Fasen. Skript tools/hd-art/ground.py.
 - 19.10.2026: Siebtes HD-Motiv im Repo: Hauswand (7 Kacheln: Moosrand 027/044/028, Eckpfosten mit Ecksteinen 051/055, Riss 054, Unkraut 062), von David abgenommen nach zwei Runden (Moos weicher und länger überblenden; kleiner Stein ragt ins Moos). Skript tools/hd-art/house.py.

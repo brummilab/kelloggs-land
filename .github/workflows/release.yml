@@ -6,7 +6,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: ['web/**', 'android/**', 'gamedata/**']
+    paths: ['web/**', 'android/**']
   workflow_dispatch:
     inputs:
       version: { description: 'Version (leer = automatisch die nächste, z. B. 0.4-test)', required: false, default: '' }

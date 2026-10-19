@@ -32,7 +32,7 @@ Where Kellogg's Land stands and what comes next. ✅ done · 🔨 in progress ·
 - 🔨 Frame interpolation for smoother scrolling (camera and sprites, at the monitor's refresh rate; needs testing on real hardware)
 - ⬜ More scaler choices (ScaleFX, sharp bilinear, CRT look)
 - ⏸ HD graphics: removed from main (19.10.2026), kept on branch `hd`
-- ✅ Android test app (internal; game files in gamedata/): WebView with touch controls, automatic releases on push, in-app updates
+- ✅ Android test app: WebView with touch controls, your own game copy picked on first start (no game files in the repo or the APK), automatic releases on push, in-app updates
 - ⬜ Export of all sprite frames without having seen them in play; animated tiles; menus and status bar replaceable
 
 ## Phase 4: Recompiler ⬜

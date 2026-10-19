@@ -127,6 +127,8 @@
   .tbtn.small { border-radius: 10px; font-size: 12px; }
   body.app #drop { background: #000; color: #fff; }
   body.app #drop .buttons, body.app #drop .files { display: none; }
+  #apppick p { max-width: 60ch; margin: 0 auto 14px; }
+  #apppick input { position: absolute; width: 1px; height: 1px; opacity: 0; }
   #appver { font-size: 13px; color: #9aa3c7; margin-top: 10px; }
   #note { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 6; background: rgba(7, 17, 63, .9);
     color: #fff; border: 2px solid var(--gold); border-radius: 10px; padding: 6px 14px; font: 600 14px var(--f-body); pointer-events: none; }
@@ -158,6 +160,10 @@
         </div>
         <p class="files">Nötig: START.EXE · PCKELL.DAT &nbsp;·&nbsp; oder einfach hierher ziehen</p>
         <button id="tapstart" class="btn" type="button">Tippen zum Starten</button>
+        <div id="apppick" hidden>
+          <p>ZIP-Datei oder alle Spieldateien zusammen wählen. Die App merkt sich die Kopie auf diesem Gerät.</p>
+          <label class="btn">Spiel auswählen<input id="apppickfile" type="file" multiple></label>
+        </div>
         <p id="appver" hidden></p>
         <div id="resumebox" class="buttons" hidden>
           <button id="resume" class="btn" type="button">Weiterspielen</button>

@@ -33,7 +33,7 @@ tasks.register('copyWeb', Copy) {
     into "$buildDir/webassets/web"
 }
 tasks.register('copyGame', Copy) {
-    from("$rootDir/../gamedata") { exclude 'README.md' }
+    from("$rootDir/../gamedata") { exclude 'README.md' }   // only for local builds: gamedata/ is in .gitignore
     into "$buildDir/webassets/game"
     doLast {
         def names = fileTree("$buildDir/webassets/game").files.collect { it.name }.findAll { it != 'files.json' }.sort()

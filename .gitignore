@@ -14,7 +14,6 @@ android/app/build/
 android/build/
 *.apk
 *.keystore
-# game files of the private test build (see gamedata/): not ignored
-!gamedata/
-!gamedata/**
+# local game copy for an Android build with the game built in (never commit)
+gamedata/
 !android/test.keystore

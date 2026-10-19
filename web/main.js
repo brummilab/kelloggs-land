@@ -114,7 +114,7 @@ function startFiles(files) {
     setStatus(`Es fehlt: ${missing.join(', ')}. Wähle den entpackten Spielordner oder die ZIP-Datei mit diesen Dateien.`, 'error');
     return;
   }
-  if (!APP) saveGame(files);
+  saveGame(files);
   let hiscore = null;
   try { const s = localStorage.getItem('kelloggs-hiscore'); if (s) hiscore = Uint8Array.from(atob(s), (ch) => ch.charCodeAt(0)); } catch {}
   started = true;
@@ -232,17 +232,28 @@ ctx.fillStyle = '#0b1a63'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 function sendScan(scan, down) { if (worker) worker.postMessage({ type: 'key', down, scan }); }
 window.kelloggsKey = (scan) => { sendScan(scan, true); setTimeout(() => sendScan(scan, false), 120); };
 if (APP) {
-  $('tapstart').addEventListener('click', async () => {
-    $('tapstart').disabled = true; $('tapstart').textContent = 'Lade …';
-    setSound(true);
-    try {
-      const base = new URL('../game/', location.href);
-      const names = await (await fetch(new URL('files.json', base))).json();
-      const files = {};
-      for (const n of names) files[n.toUpperCase()] = new Uint8Array(await (await fetch(new URL(n, base))).arrayBuffer());
-      startFiles(files);
-    } catch (e) { $('tapstart').textContent = 'Spieldateien fehlen in der App'; }
-  });
+  // Spieldateien: zuerst die in diesem Gerät gemerkte Kopie, sonst mitgelieferte (lokaler Build mit
+  // tools/android/pack.py), sonst einmal auswählen (ZIP oder Dateien), danach bleibt sie gespeichert.
+  const bundled = async () => {
+    const base = new URL('../game/', location.href);
+    const names = await (await fetch(new URL('files.json', base))).json();
+    const files = {};
+    for (const n of names) files[n.toUpperCase()] = new Uint8Array(await (await fetch(new URL(n, base))).arrayBuffer());
+    return files;
+  };
+  const ready = (files) => {
+    $('apppick').hidden = true; $('tapstart').hidden = false;
+    $('tapstart').onclick = () => { $('tapstart').disabled = true; $('tapstart').textContent = 'Lade …'; setSound(true); startFiles(files); };
+  };
+  $('tapstart').hidden = true;
+  (async () => {
+    let files = await loadGame();
+    if (!files || !NEEDED.every((n) => files[n])) { try { files = await bundled(); } catch { files = null; } }
+    if (files && NEEDED.every((n) => files[n])) ready(files);
+    else $('apppick').hidden = false;
+  })();
+  $('apppickfile').addEventListener('click', () => { if (!soundOn) setSound(true); });
+  $('apppickfile').addEventListener('change', (e) => { if (e.target.files.length) start(e.target.files); });
 }
 
 // ---------------------------------------------------------------- Touch-Tasten (App und Handy-Browser)

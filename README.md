@@ -8,7 +8,7 @@ The original `START.EXE` runs unmodified on a small emulated PC written in JavaS
 
 **Play online:** [brummilab.github.io/kelloggs-land](https://brummilab.github.io/kelloggs-land/) (bring your own copy of the game as ZIP or folder; it never leaves your browser and is remembered there, so next time *Weiterspielen* starts it with one click).
 
-**Android:** test app with the game built in, full screen with touch controls: see [Releases](../../releases) (internal testing only).
+**Android:** test app, full screen with touch controls: see [Releases](../../releases). On first start you pick your own copy of the game (ZIP or files); the app keeps it on the phone.
 
 > **Status:** Playable in the browser with sound. New: **16:9 widescreen** (levels rebuilt from map, tiles and sprites, currently for the German release with a 147,200-byte START.EXE). Still running on the interpreter, graphics still at original resolution. See the [roadmap](ROADMAP.md).
 
@@ -16,16 +16,16 @@ The original `START.EXE` runs unmodified on a small emulated PC written in JavaS
 
 The public website and the source code contain **no** game files. You need your own copy (freeware, e.g. `kelloggs.zip`) with `START.EXE`, `PCKELL.DAT`, `RTM.EXE` and `DPMI16BI.OVL`. In the browser, your copy is read locally and never uploaded. For local development put them in `game/`, which is listed in `.gitignore`.
 
-For the internal Android test build, `gamedata/` holds the maintainer's own copy (German release). **This repository must therefore stay private**; `gamedata/` is excluded from GitHub Pages (`_config.yml`) and kept byte for byte (`.gitattributes`).
+The Android app contains no game files either: on first start it asks for your copy (ZIP or all files at once) and keeps it on the device. For a local build with the game built in, put your copy in `gamedata/` (listed in `.gitignore`, never committed); the Gradle task `copyGame` then bundles it.
 
 ## Android test app
 
-`android/` wraps the browser version in a full-screen WebView (landscape, back key = Esc) with touch controls: d-pad, *Sprung* (Space), *Aktion* (Alt), *OK* (Enter), *Pause*, *Esc* and a 16:9 toggle. The game files from `gamedata/` are built in, so the app starts with one tap.
+`android/` wraps the browser version in a full-screen WebView (landscape, back key = Esc) with touch controls: d-pad, *Sprung* (Space), *Aktion* (Alt), *OK* (Enter), *Pause*, *Esc* and a 16:9 toggle. On first start you choose your own game copy once (ZIP or all files; Android file picker); after that the app starts with one tap. Save states (*Sichern*/*Laden*) stay on the phone too.
 
-- Every push to `main` that changes `web/`, `android/` or `gamedata/` builds the app and publishes it automatically as a new pre-release with the next version (0.4-test, 0.5-test, …) under [Releases](../../releases), with the list of changes (workflow *Release*). It can also be run by hand (Actions → Release → Run workflow, optionally with a version). The workflow *Android* (by hand) still puts a build on the branch `android-build`.
+- Every push to `main` that changes `web/` or `android/` builds the app and publishes it automatically as a new pre-release with the next version (0.4-test, 0.5-test, …) under [Releases](../../releases), with the list of changes (workflow *Release*). It can also be run by hand (Actions → Release → Run workflow, optionally with a version). The workflow *Android* (by hand) still puts a build on the branch `android-build`.
 - Install: copy the APK to the phone and open it (allow installing from this source once). Play Protect may warn (test signature).
 - **Updates in the app:** on every start the app looks for a newer release on GitHub (pre-releases included) and offers to download and install it ("Installieren", "Später", "Diese überspringen"). All builds are signed with the same test key `android/test.keystore` (internal test app only), so new versions install over the old one. Versions before 0.5-test were signed with changing keys: uninstall those once. The start screen shows the installed version and the result of the update check.
-- Without `gamedata/`, `tools/android/pack.py` adds a local game copy to an unsigned build and signs it.
+- `tools/android/pack.py` can still add a local game copy to a build and sign it (private use only, do not publish such an APK).
 
 ## What we know about START.EXE
 
@@ -60,7 +60,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/state.js` | save states: the whole machine (memory page by page, CPU, VGA, timer, Sound Blaster, DOS state) as cloneable data, restored into a freshly started machine | ✅ |
 | `web/sw.js`, `web/manifest.webmanifest`, `web/icons/` | installable web app, offline use (network first, cache fallback) | ✅ |
 | `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
-| `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal, private repo only): WebView around `web/`, full screen with touch controls; CI bundles the game files from `gamedata/` (if present) and puts the installable APK on branch `android-build`; without `gamedata/`, `tools/android/pack.py` adds your own copy locally | ✅ (test build) |
+| `android/`, `tools/android/pack.py`, `.github/workflows/release.yml` | Android test app: WebView around `web/`, full screen with touch controls, picks your own game copy on first start; automatic releases with in-app updates | ✅ (test build) |
 | `web/scene.js`, `tools/wide-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |

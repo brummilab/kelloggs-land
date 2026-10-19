@@ -181,7 +181,7 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
                 if (!error)
                     data = JSON.parse(rsp.string);
             } catch (ex) {
-                error = ex;
+                error = ex + ' (Text: ' + String(rsp.string).slice(0, 120) + ')';
             }
             cb(data, error);
         });
@@ -237,13 +237,16 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
      *
      * @param {Function} cb - script handler
      */
+    let _lastGetError = '';
     function getScript(cb) {
         get(RELAY_SERVER_URL, function(data, error) {
             if (error) {
+                _lastGetError = String(error);
                 // The post request will log the error.
                 cb('');
                 return;
             }
+            _lastGetError = (data && typeof data.script !== 'string') ? 'Antwort ohne Skript: ' + JSON.stringify(data).slice(0, 200) : '';
             cb((data && data.script) ? data.script : '');
         });
     }
@@ -288,7 +291,11 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         }
         try {
             // Execute in global scope with our custom logger...
-            new Function('console', script)(console);
+            // Ausgaben sowohl über den übergebenen als auch über den globalen console abfangen
+            const g = global.console, oldLog = g && g.log;
+            try { if (g) g.log = console.log; } catch (e) {}
+            try { new Function('console', script)(console); }
+            finally { try { if (g) g.log = oldLog; } catch (e) {} }
         } catch (e) {
             console.log('Error in script:', e.message);
         }
@@ -304,6 +311,8 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
         getScript(script => {
             output = ''; // sanity reset
             runScript(script);
+            if (script && !output) output = '(Skript ausgeführt, keine Ausgabe)';
+            if (!script && _lastGetError) output = '[mcp] Abruf fehlgeschlagen: ' + _lastGetError;
             postOutput();
         });
     }

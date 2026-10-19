@@ -122,9 +122,22 @@ class Handler(BaseHTTPRequestHandler):
         self._send(relay.post(req.get('output'), req.get('id')))
 
 
+class ExclusiveServer(ThreadingHTTPServer):
+    # Windows lässt mit SO_REUSEADDR mehrere Server auf denselben Port: dann landen Abfragen
+    # zufällig bei einem anderen Prozess. Deshalb exklusiv binden.
+    allow_reuse_address = False
+    daemon_threads = True
+
+    def server_bind(self):
+        import socket
+        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def start_relay():
     try:
-        srv = ThreadingHTTPServer(('127.0.0.1', PORT), Handler)
+        srv = ExclusiveServer(('127.0.0.1', PORT), Handler)
     except OSError:
         return False  # port taken: another instance is the relay
     threading.Thread(target=srv.serve_forever, daemon=True).start()

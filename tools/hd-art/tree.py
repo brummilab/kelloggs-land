@@ -100,6 +100,7 @@ GATE_STONES = [(10, 0, 20, 4.5), (21, 0, 32, 4.2),                    # small st
                (7, 19, 19.5, 25), (8, 27.5, 18.5, 35), (9, 39, 17.5, 48.5), (3, 44, 11.5, 50.5),
                (10, 48.5, 17.5, 54.5), (7, 56.5, 20, 63.5)]            # stones beside the door
 KEYSTONE = (24.6, 5.6, 38.8, 16.4)
+GROW = 0.95
 
 def stone_lump(u, v, x0, y0, x1, y1):
     """rounded stone, lit from the top left like a dome; returns a colour or None"""
@@ -126,7 +127,8 @@ def gate(Cg):
             c = None
             uu = u if u < 32 else 64 - u                                 # mirrored right half
             for st in GATE_STONES:
-                c = stone_lump(uu, v, *st) or c
+                g = GROW                                                 # stones a bit bigger: tight joints
+                c = stone_lump(uu, v, st[0] - g, st[1] - g, st[2] + g, st[3] + g) or c
                 if c: break
             if c is None:
                 k = KEYSTONE
@@ -140,8 +142,8 @@ def gate(Cg):
             if c is None:
                 c = BLACK if (int(u * 2) + int(v * 2)) % 3 else DBRN    # dark wall / opening
                 # door panels: pointed red lenses, darker dithered red around them
-                for (cx, cy, hw, hh, out) in [(23.8, 28.5, 5.6, 11.2, -1), (39.7, 28.5, 5.6, 11.2, 1),
-                                              (23.8, 61.0, 5.6, 7.5, -1), (39.7, 61.0, 5.6, 7.5, 1)]:
+                for (cx, cy, hw, hh, out) in [(25.2, 28.5, 5.6, 11.2, -1), (38.3, 28.5, 5.6, 11.2, 1),
+                                              (25.2, 61.0, 5.6, 7.5, -1), (38.3, 61.0, 5.6, 7.5, 1)]:
                     f = abs(u - cx) / hw + ((v - cy) / hh) ** 2
                     if f < 1:
                         side = (u - cx) * out
@@ -157,7 +159,9 @@ if __name__ == '__main__':
     pal = np.array([((c & 255), (c >> 8) & 255, (c >> 16) & 255) for c in d['pal']], np.uint8)
     tiles = [pal[np.array(t['px']).reshape(16, 16)] for t in d['tiles']]
     written = []
+    import os as _os
     for (x0, y0, x1, y1), want in AREAS:
+        if _os.environ.get('ONLY_GATE') and x0 != 195: continue
         C = np.zeros(((y1 - y0) * 16, (x1 - x0) * 16, 3), np.uint8)
         for y in range(y0, y1):
             for x in range(x0, x1):

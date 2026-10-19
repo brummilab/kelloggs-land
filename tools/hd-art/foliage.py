@@ -83,7 +83,7 @@ if __name__ == '__main__':
             for x in range(X0, X1):
                 j = grid[y][x]
                 C[(y - Y0) * 16:(y - Y0 + 1) * 16, (x - X0) * 16:(x - X0 + 1) * 16] = tiles[j] if j >= 0 else 0
-        hd = leafstyle.draw_leaves(redraw(C), leafstyle.find_leaves(C))
+        hd = leafstyle.render(C, X0, Y0, grid, redraw)
         pick = {}
         for y in range(Y0 + 1, Y1 - 1):
             for x in range(X0 + 1, X1 - 1):

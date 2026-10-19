@@ -29,6 +29,7 @@ Browser-Recomp von *Tony & Friends in Kellogg's Land* (DOS 1994): originale STAR
 - DOSBox-Einstellungen: VOGONS-Thread t=96210
 
 ## Log
+- 19.10.2026: Zweites HD-Motiv im Repo: gelbe Tür (2×3 Kacheln, Varianten ohne/mit rotem/blauem Knauf, Kacheln 052 053 058 059 060 061 113 114), von David abgenommen. Skript tools/hd-art/door.py. Hinweis: Leinwand per Skript vergrößern (sprite.resize) vergrößert die Zeichenfläche nicht, Pixel außerhalb ließen LibreSprite hängen → größere Bilder über den Neue-Datei-Dialog anlegen.
 - 19.10.2026: Erste handgemachte HD-Kachel im Repo: Fragezeichen-Block (Level 1, Kachel 034) → web/hd/t_8648e59f.png (64×64), von David abgenommen. Gezeichnet per Skript (tools/hd-art/t034_question_block.py), in LibreSprite übertragen und wieder ausgelesen. LibreSprite-Verbindung stabil, nachdem ein alter libresprite-mcp-Prozess beendet und der Port exklusiv gebunden wurde.
 - 19.10.2026: Ursache für hängende LibreSprite-Befehle: Original-Relay hält Abfragen offen, nach LibreSprite-Neustart schlucken verwaiste Abfragen die Befehle. Eigener Relay-Server tools/libresprite/server.py (sofortige Antwort, Zeitlimit, Weitergabe zwischen zwei Instanzen); lokal getestet.
 - 19.10.2026: LibreSprite-MCP läuft: Claude steuert LibreSprite 1.3 per JavaScript. Angepasstes mcp.js (tools/libresprite/mcp.js): Berechtigung net.fetch, kein app.yield (kommt in 1.3 nicht an) → setTimeout, Antworten per Abfrage, eine Abfrage-Schleife, leere Abrufe nicht als Ausgabe senden. Anzeige „Connect“ wechselt nicht, Verbindung läuft trotzdem.

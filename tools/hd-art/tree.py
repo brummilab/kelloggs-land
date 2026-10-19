@@ -54,7 +54,7 @@ def trunk(u, v):
             side = (v - (a[1] + (b[1] - a[1]) * t))
             if d > w - 0.35: return DBRN
             return (238, 238, 238) if side < -w * 0.3 else OCH if side < w * 0.2 else BRN
-    if v < 140: return None
+    if v < 168: return None
     l, r = trunk_edges(v)
     if not (l <= u <= r): return None
     cx, cy, rx, ry = HOLE
@@ -81,15 +81,19 @@ def overlay_trunk(hd, C, x0, y0):
     leaf = {LIME, GREEN, DGREEN}
     for y in range(H):
         v = (y + 0.5) / 4
-        if v < 140: continue
+        if v < 168: continue
         for x in range(W):
             u = (x + 0.5) / 4
             c = trunk(u, v)
             if c is None: continue
             o = tuple(C[int(v), int(u)])
             if tuple(hd[y, x]) in leaf and o in leaf: continue
-            # where the trunk forks into the crown, follow the original's outline (no straight cut-off line)
-            if v < 184 and (o in leaf or o == (0, 109, 238) or tuple(hd[y, x]) == (0, 109, 238)): continue
+            # where the trunk forks into the crown (above about v 186) the original's fork stays; the new trunk
+            # fades in over 18 px with a fine pattern, so there is no straight seam
+            if v < 186:
+                if o in leaf or o == (0, 109, 238) or tuple(hd[y, x]) == (0, 109, 238): continue
+                if noise(x, y, 11) > (v - 168) / 18.0: continue
+                if o in (DBRN, BLACK) and not (TL - 2 <= u <= TR + 1): continue
             hd[y, x] = c
 
 PINK=(238,93,109); DRED=(157,0,0); YELC=(238,238,93); WHITEC=(238,238,238)
@@ -106,21 +110,53 @@ KEYSTONE = (24.6, 5.6, 38.8, 16.4)
 GROW = 0.95
 
 def stone_lump(u, v, x0, y0, x1, y1):
-    """rounded stone, lit from the top left like a dome; returns a colour or None"""
+    """rounded stone, lit from the top left like a dome; every stone a little different (brightness, grain,
+    some with a crack, some with moss on top); returns a colour or None"""
     r = min(2.6, (x1 - x0) / 2, (y1 - y0) / 2)
     qx = max(x0 + r - u, 0, u - (x1 - r)); qy = max(y0 + r - v, 0, v - (y1 - r))
     d = math.hypot(qx, qy) - r
     if d > 0: return None
     if d > -0.45: return DBRN
+    sid = int(x0 * 7 + y0 * 13)                                         # stone identity for its variations
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     hx, hy = (u - cx) / ((x1 - x0) / 2), (v - cy) / ((y1 - y0) / 2)     # -1..1 across the stone
     lum = 0.45 - 0.45 * hx - 0.55 * hy - 0.3 * (hx * hx + hy * hy)
+    lum += (noise(sid, 1, 21) - 0.5) * 0.3                               # some stones lighter, some darker
     # more shadow like the original: stones next to the dark door opening and low stones lie in shadow
     ao = max(0.0, 1 - max(0.0, 18.5 - min(u, 64 - u)) / 9.0) if v > 12 else 0.0
     lum -= 0.35 * ao + 0.12 * max(0.0, (v - 40) / 24)
+    # moss on the top of some stones
+    if noise(sid, 2, 22) < 0.35 and hy < -0.55 + 0.25 * math.sin(u * 2.1 + sid) and d < -0.45:
+        return GREEN if (noise(int(u * 2), int(v * 2), 23) < 0.35 and lum > 0) else DGREEN
+    # a crack in some stones
+    if noise(sid, 3, 24) < 0.3:
+        k = (u - cx) * 0.8 - (v - cy) + 0.5 * math.sin(u * 3 + sid)
+        if abs(k) < 0.22 and abs(hx) < 0.7: return DBRN
+    # grain: small darker pits
+    if noise(int(u * 2), int(v * 2), sid) < 0.06: lum -= 0.35
     if lum > 0.2 and math.hypot(hx + 0.35, hy + 0.4) < 0.24: return WHITEC   # glint
     if lum < -0.2: return DBRN if (int(u * 2) + int(v * 2)) % 2 else BRN     # deep shadow, dithered like the original
     return WHITEC if lum > 0.9 else YELC if lum > 0.5 else OCH if lum > 0.15 else BRN
+
+def gate_plants(u, v):
+    """a little life on the gate: ivy hanging from the top left, grass tufts at the foot of the jambs"""
+    # ivy: a wavy stem with small leaves
+    if u < 14 and v < 30:
+        sx = 3.0 + 1.6 * math.sin(v * 0.35) + v * 0.12
+        if abs(u - sx) < 0.35: return DGREEN
+        for k in range(6):
+            ly = 3 + k * 4.4
+            lx = 3.0 + 1.6 * math.sin(ly * 0.35) + ly * 0.12 + (1.4 if k % 2 else -1.4)
+            dl = math.hypot((u - lx) / 1.25, (v - ly) / 0.85)
+            if dl < 1: return DGREEN if dl > 0.7 else (LIME if (u - lx) + (v - ly) < 0 else GREEN)
+    # grass tufts at the bottom of both jambs
+    for bx in (4.0, 11.0, 53.0, 60.0):
+        if v > 59:
+            for j, (dx, h) in enumerate([(-1.0, 4.0), (0.0, 5.5), (1.0, 3.5)]):
+                t = (64 - v) / h
+                if 0 <= t <= 1 and abs(u - (bx + dx + dx * t * 0.8)) < 0.4 * (1 - t) + 0.1:
+                    return LIME if t > 0.4 else GREEN
+    return None
 
 def gate(Cg):
     """stone gateway with the red door (tiles 096-131 of area 2): 64 x 64 original pixels -> 256 x 256.
@@ -131,7 +167,9 @@ def gate(Cg):
     for y in range(64 * S):
         for x in range(64 * S):
             u, v = (x + 0.5) / S, (y + 0.5) / S
-            c = None
+            c = gate_plants(u, v)
+            if c is not None:
+                img[y, x] = c; continue
             uu = u if u < 32 else 64 - u                                 # mirrored right half
             for st in GATE_STONES:
                 g = GROW                                                 # stones a bit bigger: tight joints

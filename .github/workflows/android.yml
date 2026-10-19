@@ -1,11 +1,9 @@
 # Builds the Android test app (WebView around web/, with the game files from gamedata/ if that folder is in the
 # repo; internal testing only, private repo) and puts the installable APK (debug key) on the branch android-build.
 name: Android
+# Runs only by hand now; on every push the workflow "Release" builds and publishes the app.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['android/**', 'web/**', 'gamedata/**', '.github/workflows/android.yml']
 permissions:
   contents: write
 jobs:

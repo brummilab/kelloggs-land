@@ -1,25 +1,47 @@
-# Android test release: run by hand (Actions → Release → Run workflow), enter a version like 0.2-test.
-# Builds the app with the game files from gamedata/ and publishes it as a pre-release (private repo only).
+# Android test release, automatic: every push to main that changes web/, android/ or gamedata/ builds the app
+# with the game files from gamedata/ and publishes it as a new pre-release with the next version
+# (0.3-test -> 0.4-test -> ...). Can also be run by hand (Actions -> Release -> Run workflow), optionally with
+# a version. Private repo only (the app contains the game files).
 name: Release
 on:
+  push:
+    branches: [main]
+    paths: ['web/**', 'android/**', 'gamedata/**']
   workflow_dispatch:
     inputs:
-      version: { description: 'Version (z. B. 0.2-test)', required: true, default: '0.2-test' }
+      version: { description: 'Version (leer = automatisch die nächste, z. B. 0.4-test)', required: false, default: '' }
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: next version
+        id: v
+        env: { GH_TOKEN: '${{ github.token }}', WANT: '${{ inputs.version }}' }
+        run: |
+          if [ -n "$WANT" ]; then V="$WANT"; else
+            LAST=$(git tag -l 'v0.*-test' | sed 's/^v0\.\([0-9]*\)-test$/\1/' | sort -n | tail -1)
+            V="0.$(( ${LAST:-0} + 1 ))-test"
+          fi
+          CODE=$(echo "$V" | sed 's/^0\.\([0-9]*\).*/\1/'); [ -z "$CODE" ] && CODE=$GITHUB_RUN_NUMBER
+          echo "version=$V" >> $GITHUB_OUTPUT; echo "code=$CODE" >> $GITHUB_OUTPUT
+          echo "Version $V (versionCode $CODE)"
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.9' }
-      - run: gradle -p android assembleDebug --no-daemon
+      - run: gradle -p android assembleDebug --no-daemon -PappVersion=${{ steps.v.outputs.version }} -PappCode=${{ steps.v.outputs.code }}
       - name: create the release
-        env: { GH_TOKEN: '${{ github.token }}', V: '${{ inputs.version }}' }
+        env: { GH_TOKEN: '${{ github.token }}', V: '${{ steps.v.outputs.version }}' }
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk "KelloggsLand-$V.apk"
+          { cat .github/release-notes.md; echo; echo "Änderungen seit der letzten Version:"; \
+            git log --format='- %s' "$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)"..HEAD | head -30; } > notes.md
           gh release create "v$V" "KelloggsLand-$V.apk" --target "$GITHUB_SHA" --prerelease \
-            --title "Kellogg's Land $V (Android-Test)" --notes-file .github/release-notes.md
+            --title "Kellogg's Land $V (Android-Test)" --notes-file notes.md

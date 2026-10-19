@@ -22,7 +22,7 @@ For the internal Android test build, `gamedata/` holds the maintainer's own copy
 
 `android/` wraps the browser version in a full-screen WebView (landscape, back key = Esc) with touch controls: d-pad, *Sprung* (Space), *Aktion* (Alt), *OK* (Enter), *Pause*, *Esc* and a 16:9 toggle. The game files from `gamedata/` are built in, so the app starts with one tap.
 
-- Every push to `android/`, `web/` or `gamedata/` builds the app (workflow *Android*) and puts `KelloggsLand-test.apk` on the branch `android-build`; tested versions are published as [releases](../../releases) with the workflow *Release* (Actions → Release → Run workflow, enter a version).
+- Every push to `main` that changes `web/`, `android/` or `gamedata/` builds the app and publishes it automatically as a new pre-release with the next version (0.4-test, 0.5-test, …) under [Releases](../../releases), with the list of changes (workflow *Release*). It can also be run by hand (Actions → Release → Run workflow, optionally with a version). The workflow *Android* (by hand) still puts a build on the branch `android-build`.
 - Install: copy the APK to the phone and open it (allow installing from this source once). It is signed with a debug key, so Play Protect may warn.
 - Without `gamedata/`, `tools/android/pack.py` adds a local game copy to an unsigned build and signs it.
 

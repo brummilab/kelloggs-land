@@ -1,0 +1,2 @@
+# game files: keep them byte for byte (DOS line endings), never convert
+gamedata/** binary

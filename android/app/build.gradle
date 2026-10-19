@@ -11,8 +11,8 @@ android {
     }
     buildTypes { release { minifyEnabled false } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-    // the web version (web/, without HD art) is copied into assets/web by the build (task copyWeb);
-    // the game files are NOT part of the repo and are added to assets/game afterwards (tools/android/pack.py)
+    // the web version (web/) goes to assets/web (task copyWeb), the game files from gamedata/ (if the folder is
+    // there) to assets/game with a list files.json (task copyGame); the page loads them itself (web/main.js, ?app=1)
     sourceSets { main { assets.srcDirs = ["$buildDir/webassets"] } }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
@@ -20,4 +20,12 @@ tasks.register('copyWeb', Copy) {
     from("$rootDir/../web")
     into "$buildDir/webassets/web"
 }
-preBuild.dependsOn copyWeb
+tasks.register('copyGame', Copy) {
+    from("$rootDir/../gamedata") { exclude 'README.md' }
+    into "$buildDir/webassets/game"
+    doLast {
+        def names = fileTree("$buildDir/webassets/game").files.collect { it.name }.findAll { it != 'files.json' }.sort()
+        if (names) file("$buildDir/webassets/game/files.json").text = '[' + names.collect { '"' + it + '"' }.join(',') + ']'
+    }
+}
+preBuild.dependsOn copyWeb, copyGame

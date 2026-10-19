@@ -45,7 +45,7 @@ The imports are limited to memory (`GlobalAlloc`, `GlobalDOSAlloc` …), fixed s
 | `web/audio-worklet.js` | browser audio output: ring buffer, 20 kHz → device rate, ~80 ms latency | ✅ |
 | `web/index.html`, `main.js`, `worker.js`, `zip.js` | browser version: load your copy (ZIP, files or folder), machine in a Web Worker, canvas, keyboard, high scores stored in the browser | ✅ |
 | `web/gl.js` | WebGL2 renderer: tiles, sprites and palette on the GPU, interpolated frames for smooth scrolling at the monitor's refresh rate | ✅ |
-| `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal): WebView around `web/`, full screen with touch controls; CI builds the app without game files, `pack.py` adds your own game copy and signs it | ✅ (test build) |
+| `android/`, `tools/android/pack.py`, `.github/workflows/android.yml` | Android test app (internal, private repo only): WebView around `web/`, full screen with touch controls; CI bundles the game files from `gamedata/` (if present) and puts the installable APK on branch `android-build`; without `gamedata/`, `tools/android/pack.py` adds your own copy locally | ✅ (test build) |
 | `web/scene.js`, `tools/wide-test.mjs` | widescreen: per-frame scene from game memory, tiles from the level map, sprites captured from their compiled code, pixel comparison against the original | ✅ (prototype) |
 | `tools/run.mjs` | run the game headless, script key presses, save PNGs / WAV | ✅ |
 | `tools/serve.py` | local web server | ✅ |

@@ -14,3 +14,6 @@ android/app/build/
 android/build/
 *.apk
 *.keystore
+# game files of the private test build (see gamedata/): not ignored
+!gamedata/
+!gamedata/**

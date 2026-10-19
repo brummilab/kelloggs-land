@@ -81,19 +81,16 @@ def leaf_overlap(u, v):
 def colour(u, v):
     lo = leaf_overlap(u, v)
     if lo: return lo
-    # the top rail lies over the lantern bodies like in the original (its dark end grain on the lantern)
-    if 4.2 <= v <= 9.0 and 4.6 < u < 98.6:
-        if u < 7.4 or u > 95.8: return BLACK if (v > 8.5 or u < 5.0 or u > 98.2) else DBRN
     # lanterns and posts
     for (x0, x1) in POSTS:
         cx = (x0 + x1) / 2
         c = lantern(u, v, cx)
         if c: return c
-        # the top rail runs into the post: a wooden bracket fills the corner under the lantern
+        # a wooden bracket fills the corner between rail and post under the lantern
         side = 1 if cx < 50 else -1
         ex = x1 if side > 0 else x0                       # inner edge of the post
         du = (u - ex) * side                              # distance from the post towards the bridge
-        if -2.2 <= du <= 3.2 and 8.6 <= v <= 11.6 and (v - 8.6) <= 3.0 - max(0, du) * 0.95:
+        if 0 <= du <= 3.2 and 8.6 <= v <= 11.6 and (v - 8.6) <= 3.0 - max(0, du) * 0.95:
             return BLACK if (v - 8.6) > 2.6 - max(0, du) * 0.95 else (OCH if v < 9.3 else BRN if du < 1.6 else DBRN)
         if x0 <= u <= x1 and 9.0 <= v <= 32.5:
             if 12.5 <= v <= 15.5 or 28.5 <= v <= 31.5:          # green rings
@@ -113,14 +110,12 @@ def colour(u, v):
             if d > w - 0.35: return DGREEN                      # dark outline like the original
             return YEL if tip else (LIME if d < 0.25 else GREEN)
     # top rail and bottom rail
-    if 6.2 < u < 96.8:
+    if 3.9 < u < 99.1:
         for k in range(5):                                            # nails where the balusters are fixed
             nx = 19.1 + 16 * k
             for ny in (6.6, 30.1):
                 dn = math.hypot(u - nx, v - ny)
                 if dn < 0.55: return BLACK if dn > 0.25 else DBRN
-        if u < 7.2 or u > 95.8:                                       # end grain against the posts
-            if 4.2 <= v <= 9.0 or 27.8 <= v <= 32.4: return DBRN
         if 4.2 <= v <= 9.0: return wood_h(v, 4.2, 9.0, u, 4)
         if 9.0 < v <= 9.8: return DBRN if (u % 16) > 1 else BRN       # shadow under the rail
         if 27.8 <= v <= 32.4: return wood_h(v, 27.8, 32.4, u, 5)

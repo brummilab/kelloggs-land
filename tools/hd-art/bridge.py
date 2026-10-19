@@ -101,12 +101,19 @@ def colour(u, v):
     # (they start inside the rail and end inside the wood, so both ends sit on the wood)
     # one vine in every railing field, all hanging the same way; the last one ends on the right post.
     # (tile 176 repeats along the railing, so each vine's end must also be in the field before: same pattern)
-    vines = [(10 + 16 * k, 8.3, 17.8 + 16 * k, 15.4) for k in range(5)] + [(90, 8.3, 97.8, 15.4)]
+    # the stem of each vine stays inside its railing field (tile 176 repeats), its leaf sits on the next
+    # baluster just over the tile edge, so stem and leaf meet in every copy of the tile
+    vines = [(24.6 + 16 * k, 8.3, 32.0 + 16 * k, 15.0) for k in range(5)]
+    leaf_only = (8.6, 8.3, 16.0, 15.0)
+    if u >= 16: vines.append(leaf_only)                 # leaf of the vine from the field before
+    else: vines.append((13.4, 8.3, 5.4, 15.4))          # the first one, like in the original: from the rail to the post
     for (ax, ay, bx, by) in vines:
         lx, ly = (bx, by) if by > ay else (ax, ay)            # the leaf hangs at the lower end
-        dl = math.hypot((u - lx - 0.6) / 1.5, (v - ly - 0.9) / 1.0)
+        side = 0.6 if bx >= ax else -0.6
+        dl = math.hypot((u - lx - side) / 1.5, (v - ly - 0.9) / 1.0)
         if dl < 1:
             return DGREEN if dl > 0.72 else (LIME if (u - lx) + (v - ly) < 0.6 else GREEN)
+        if (ax, ay, bx, by) == leaf_only and u >= 16: continue
         d, t = seg(u, v, ax, ay, bx, by)
         w = 1.0 - 0.3 * t
         if d < w:

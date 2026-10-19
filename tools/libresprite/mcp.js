@@ -417,6 +417,8 @@ const global = (typeof globalThis !== 'undefined' && globalThis) || Function('re
                 checkServerHealth();
                 return;
             case 'good_health':
+                // Gleich verbinden: in LibreSprite 1.3 reagiert der Connect-Knopf nicht zuverlässig
+                if (!polling) startPolling();
                 paintUI();
                 return;
             /**
